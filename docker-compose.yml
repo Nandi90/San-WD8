@@ -1,14 +1,15 @@
-version: "3.8"
 services:
   sanwd:
     build: .
     ports:
-      - "127.0.0.1:3088:3000"
+      - "3088:3000"
     volumes:
       - ./data:/data
     environment:
       - NODE_ENV=development
       - DEV_AUTH=true
       - DATABASE_PATH=/data/sanwd.db
-      - SESSION_SECRET=dev-secret-v8-sanwd
+      - SESSION_SECRET=sanwd-v8-dev-secret-key-2026-abcdefgh
+      - APP_URL=http://localhost:3088
+    user: "root"
     restart: unless-stopped

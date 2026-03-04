@@ -104,8 +104,9 @@ function ncAutoUpload(req, vorgangId, filename, pdfBuffer, stamm) {
     } catch(e) { console.error("Nextcloud Auto-Sync:", e.message); }
   });
 }
+const isDev = process.env.NODE_ENV !== "production";
 app.use(helmet({
-  contentSecurityPolicy: {
+  contentSecurityPolicy: isDev ? false : {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "https://unpkg.com"],
@@ -120,13 +121,7 @@ app.use(helmet({
   }
 }));
 app.use(cors({
-  origin: (() => {
-    if (!process.env.APP_URL) {
-      console.error("FATAL: APP_URL nicht gesetzt");
-      process.exit(1);
-    }
-    return process.env.APP_URL;
-  })(),
+  origin: process.env.APP_URL || "http://localhost:3088",
   credentials: true
 }));
 app.use(express.json({ limit: "10mb" }));
