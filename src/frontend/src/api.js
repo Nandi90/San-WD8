@@ -42,6 +42,10 @@ const API = {
   },
 
   // ── Stammdaten ───────────────────────────────────────────────
+  async getBereitschaften() {
+    return this.json("/api/stammdaten/bereitschaften");
+  },
+
   async getStammdaten() {
     return this.json("/api/stammdaten/me");
   },

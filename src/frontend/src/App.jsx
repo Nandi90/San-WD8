@@ -22,8 +22,8 @@ const BRKLogo=({size=48,full,customLogo})=>{if(full&&customLogo)return <img src=
 // ═══════════════════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════════════════
-const BEREITSCHAFTEN=[{code:"KBL",name:"Kreisbereitschaftsleitung",short:"KBL"},{code:"BSOB",name:"Bereitschaft Schrobenhausen",short:"SOB"},{code:"BND",name:"Bereitschaft Neuburg",short:"ND"},{code:"BKAHU",name:"Bereitschaft Karlshuld",short:"KAHU"},{code:"BKK",name:"Bereitschaft Karlskron",short:"KK"},{code:"BBGH",name:"Bereitschaft Burgheim",short:"BGH"},{code:"BWEIG",name:"Bereitschaft Weichering",short:"WEIG"}];
-const DEFAULT_STAMMDATEN={kvName:"Kreisverband Neuburg-Schrobenhausen",kgf:"Anton Gutmann",kvAdresse:"Karl Konrad Str. 3",kvPlzOrt:"86633 Neuburg",bereitschaftIdx:0,bereitschaftsleiterTitle:"Bereitschaftsleiter",bereitschaftsleiter:"Kreisbereitschaftsleitung",telefon:"08431/6799-0",fax:"08431/6799-0",mobil:"-",email:"info@kvndsob.brk.de",funkgruppe:"",customLogo:null,rates:{helfer:14,ktw:125,rtw:155,aerzte:0,gktw:105,einsatzleiter:14,einsatzleiterKfz:155,mobileSanstation:115,segLkw:125,mtw:50,zelt:60,kmKtw:0.4,kmRtw:0.4,kmGktw:0.4,kmElKfz:0.6,kmSegLkw:0.6,kmMtw:0.4,verpflegung:17}};
+// BEREITSCHAFTEN: dynamisch geladen via API (siehe useState + useEffect)
+const DEFAULT_STAMMDATEN={kvName:"",kgf:"",kvAdresse:"",kvPlzOrt:"",bereitschaftIdx:0,bereitschaftsleiterTitle:"Bereitschaftsleiter",bereitschaftsleiter:"",telefon:"",fax:"",mobil:"",email:"",funkgruppe:"",customLogo:null,rates:{helfer:0,ktw:0,rtw:0,aerzte:0,gktw:0,einsatzleiter:0,einsatzleiterKfz:0,mobileSanstation:0,segLkw:0,mtw:0,zelt:0,kmKtw:0,kmRtw:0,kmGktw:0,kmElKfz:0,kmSegLkw:0,kmMtw:0,verpflegung:0}};
 const EVENT_TYPES=[{id:1,name:"Kurkonzert",factor:0.1},{id:2,name:"Reitsportveranstaltung",factor:0.1},{id:3,name:"Klassikkonzert, Oper, Operette",factor:0.2},{id:4,name:"Schauspiel, Theater",factor:0.2},{id:5,name:"Show",factor:0.2},{id:6,name:"Allg. Sportveranstaltung",factor:0.3},{id:7,name:"Ausstellung, Basar, Flohmarkt",factor:0.3},{id:8,name:"Langlauf, Radrennen",factor:0.3},{id:9,name:"Messe, Martinszug",factor:0.3},{id:10,name:"Kombi Sport-Musik-Show",factor:0.35},{id:11,name:"Volksfest, Straßenfest",factor:0.4},{id:12,name:"Feuerwerk",factor:0.4},{id:13,name:"Schützenfest, Festzug",factor:0.5},{id:14,name:"Festzug mit Pferdewagen",factor:0.7},{id:15,name:"Musikveranstaltung",factor:0.5},{id:16,name:"Kundgebung",factor:0.5},{id:17,name:"Triathlon, Crosslauf",factor:0.6},{id:18,name:"Faschingsveranstaltung",factor:0.7},{id:19,name:"Wintersport Ski/Snowboard",factor:0.8},{id:20,name:"Wintersport Rodel/Bob",factor:0.8},{id:21,name:"Motorsportveranstaltung",factor:0.8},{id:22,name:"Demonstration",factor:0.8},{id:23,name:"Flugveranstaltung",factor:0.9},{id:24,name:"Rock-/Popkonzert",factor:1.0},{id:25,name:"Individueller Faktor",factor:0}];
 const PERSONNEL_TABLE=[{min:0,max:2,h:2,k:0},{min:2,max:4,h:3,k:0},{min:4,max:13,h:5,k:1},{min:13,max:25,h:10,k:2},{min:25,max:40,h:20,k:3},{min:40,max:60,h:30,k:4},{min:60,max:80,h:40,k:5},{min:80,max:100,h:80,k:6},{min:100,max:120,h:120,k:8},{min:120,max:9999,h:140,k:10}];
 const RTW_T=[{min:0,max:6,v:0},{min:6,max:25.5,v:1},{min:25.5,max:45.5,v:2},{min:45.5,max:60.5,v:3},{min:60.5,max:75.5,v:4},{min:75.5,max:100,v:5},{min:100,max:120,v:6},{min:120,max:9999,v:8}];
@@ -625,7 +625,7 @@ function AnfragenTab({user,toast,bereitschaften,onOpenVorgang}){
   </div>);
 }
 
-function StatistikDashboard({user,year:appYear,toast}){
+function StatistikDashboard({user,year:appYear,toast,bereitschaften=[]}){
   const [year,setYear]=useState(appYear||new Date().getFullYear());
   const [bc,setBc]=useState("ALL");
   const [data,setData]=useState(null);
@@ -735,7 +735,7 @@ function StatistikDashboard({user,year:appYear,toast}){
   </div>);
 }
 
-function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln,klauselnEdit,setKlauselnEdit,klauselnSaving,saveKlauseln,bereitschaft,reloadStammdaten}){
+function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln,klauselnEdit,setKlauselnEdit,klauselnSaving,saveKlauseln,bereitschaft,reloadStammdaten,bereitschaften=[]}){
   const [sub,setSub]=useState("org");
   const subs=[{id:"org",label:"Organisation",icon:"🏢"},{id:"bereitschaften",label:"Bereitschaften",icon:"🏥"},{id:"kosten",label:"Kostensätze",icon:"💰"},{id:"klauseln",label:"Textvorlagen",icon:"📝"},{id:"nextcloud",label:"Nextcloud",icon:"☁️"},{id:"email",label:"E-Mail",icon:"✉️"}];
   return(<div>
@@ -1029,7 +1029,7 @@ function SmtpConfig({toast}){
           <div style={{fontSize:12,fontWeight:700,color:"#1a237e",marginBottom:10}}>💳 FiBu-Weiterleitung</div>
           <div>
             <div style={{fontSize:11,fontWeight:600,color:"#555",marginBottom:3}}>FiBu E-Mail-Adresse</div>
-            <input value={cfg.fibu_email||""} onChange={e=>setCfg(p=>({...p,fibu_email:e.target.value}))} placeholder="fibu@brk-ndsob.de" style={{width:"100%",padding:"7px 10px",border:"1px solid #ccc",borderRadius:5,fontSize:12,fontFamily:FONT.sans}}/>
+            <input value={cfg.fibu_email||""} onChange={e=>setCfg(p=>({...p,fibu_email:e.target.value}))} placeholder="fibu@example.de" style={{width:"100%",padding:"7px 10px",border:"1px solid #ccc",borderRadius:5,fontSize:12,fontFamily:FONT.sans}}/>
             <div style={{fontSize:10,color:"#888",marginTop:3}}>Standard-Empfänger für die FiBu-Weiterleitung aus der Checkliste.</div>
           </div>
         </div>
@@ -1303,7 +1303,7 @@ function NextcloudConfig({toast}){
 
         <div style={{marginBottom:12}}>
           <div style={{fontSize:12,fontWeight:600,color:C.dunkelgrau,marginBottom:4}}>Nextcloud URL</div>
-          <input value={ncCfg.nextcloud_url||""} onChange={e=>setNcCfg(p=>({...p,nextcloud_url:e.target.value}))} placeholder="https://office.brkndsob.org" style={{width:"100%",padding:"8px 12px",border:"1px solid #ccc",borderRadius:6,fontSize:13,fontFamily:FONT.sans}}/>
+          <input value={ncCfg.nextcloud_url||""} onChange={e=>setNcCfg(p=>({...p,nextcloud_url:e.target.value}))} placeholder="https://office.example.org" style={{width:"100%",padding:"8px 12px",border:"1px solid #ccc",borderRadius:6,fontSize:13,fontFamily:FONT.sans}}/>
         </div>
 
         <div style={{marginBottom:12}}>
@@ -1342,7 +1342,7 @@ function NextcloudConfig({toast}){
         </div>
 
         <div style={{background:"#f5f5f5",borderRadius:6,padding:"10px 14px",marginBottom:16,fontSize:11,fontFamily:FONT.mono,color:"#555"}}>
-          <div style={{fontSize:10,fontWeight:600,color:C.dunkelgrau,marginBottom:4}}>Vorschau Pfad (Bereitschaft Schrobenhausen, BSOB 26/001)</div>
+          <div style={{fontSize:10,fontWeight:600,color:C.dunkelgrau,marginBottom:4}}>Vorschau Pfad (Beispiel)</div>
           /{(ncCfg.nextcloud_base_path||"SanWD").replace(/\$bereitschaft/g,"Schrobenhausen").replace(/\$bc/g,"BSOB").replace(/\$jahr/g,"2026")}/{(ncCfg.nextcloud_subfolder||"$auftragsnr").replace(/\$auftragsnr/g,"BSOB_26_001").replace(/\$veranstaltung/g,"Volksfest").replace(/\$bereitschaft/g,"Schrobenhausen").replace(/\$bc/g,"BSOB").replace(/\$jahr/g,"2026")}
         </div>
 
@@ -1372,9 +1372,9 @@ function NextcloudConfig({toast}){
 // ═══════════════════════════════════════════════════════════════════════════
 // FIBU WEITERLEITUNG MODAL
 // ═══════════════════════════════════════════════════════════════════════════
-function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,activeDays,toast,onClose,onSent}){
-  const ownBC=BEREITSCHAFTEN[stammdaten?.bereitschaftIdx]||BEREITSCHAFTEN[0];
-  const otherBCs=BEREITSCHAFTEN.filter(b=>b.code!==ownBC.code&&b.code!=="KBL");
+function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,activeDays,toast,onClose,onSent,bereitschaften=[]}){
+  const ownBC=bereitschaften.find(b=>b.code===user?.bereitschaftCode)||bereitschaften[0]||{code:"",name:"",short:""};
+  const otherBCs=bereitschaften.filter(b=>b.code!==ownBC.code&&b.code!=="KBL");
   const absender=user?.name||"";
   const orgName=stammdaten?.kvName||"BRK Kreisverband";
 
@@ -1396,7 +1396,7 @@ function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,
   const helferSummary=()=>{
     if(!hasFremdHelfer)return"";
     const lines=fremdHelfer.filter(h=>h.bc&&h.anzahl).map(h=>{
-      const b=BEREITSCHAFTEN.find(x=>x.code===h.bc);
+      const b=bereitschaften.find(x=>x.code===h.bc);
       return`- ${h.anzahl} Helfer von ${b?.name||h.bc}`;
     });
     if(externeHelfer.trim())lines.push(`- Externe: ${externeHelfer.trim()}`);
@@ -1405,7 +1405,7 @@ function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,
   const fzgSummary=()=>{
     if(!hasFzg)return"";
     const lines=fahrzeuge.filter(f=>f.typ||f.kennzeichen).map(f=>{
-      const bcInfo=f.bc?` (${BEREITSCHAFTEN.find(x=>x.code===f.bc)?.name||f.bc})`:"";
+      const bcInfo=f.bc?` (${bereitschaften.find(x=>x.code===f.bc)?.name||f.bc})`:"";
       return`- ${f.typ||"Fahrzeug"}${f.kennzeichen?" – "+f.kennzeichen:""}${bcInfo}`;
     });
     return lines.length?"\n\nEingesetzte Fahrzeuge:\n"+lines.join("\n"):"";
@@ -1485,7 +1485,7 @@ function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,
         {/* FiBu E-Mail */}
         <div style={{marginBottom:14}}>
           <label style={sL}>FiBu E-Mail-Adresse *</label>
-          <input value={fibuEmail} onChange={e=>setFibuEmail(e.target.value)} placeholder="fibu@brk-ndsob.de" style={{...sI,border:`1px solid ${fibuEmail&&!fibuEmail.includes("@")?"#ef5350":"#ccc"}`}}/>
+          <input value={fibuEmail} onChange={e=>setFibuEmail(e.target.value)} placeholder="fibu@example.de" style={{...sI,border:`1px solid ${fibuEmail&&!fibuEmail.includes("@")?"#ef5350":"#ccc"}`}}/>
           <div style={{fontSize:10,color:"#888",marginTop:2}}>Wird gespeichert und beim nächsten Mal vorausgefüllt</div>
         </div>
 
@@ -1549,7 +1549,7 @@ function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,
           if(allBCs.size===0)return null;
           return <div style={{marginBottom:14,padding:"10px 14px",background:"#e8f5e9",border:"1px solid #a5d6a7",borderRadius:6,fontSize:11,color:"#2e7d32"}}>
             <div style={{fontWeight:700,marginBottom:4}}>📨 Automatische Benachrichtigung an:</div>
-            {[...allBCs].map(bc=>{const b=BEREITSCHAFTEN.find(x=>x.code===bc);return <div key={bc}>• {b?.name||bc}</div>;})}
+            {[...allBCs].map(bc=>{const b=bereitschaften.find(x=>x.code===bc);return <div key={bc}>• {b?.name||bc}</div>;})}
             <div style={{marginTop:4,fontSize:10,color:"#388e3c"}}>Die Bereitschaften werden an ihre hinterlegte E-Mail informiert, dass eine Abrechnung mit ihren Helfern/Fahrzeugen an die FiBu ging.</div>
           </div>;
         })()}
@@ -1579,7 +1579,7 @@ function FiBuModal({currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,
   </div>);
 }
 
-function VorgangChecklist({checklist={},onChange,onLockSave,eventDate,currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,activeDays,toast}){
+function VorgangChecklist({checklist={},onChange,onLockSave,eventDate,currentEventId,event:ev,user,stammdaten,dayCalcs,totalCosts,activeDays,toast,bereitschaften=[]}){
   const [confirmKey,setConfirmKey]=useState(null);
   const [showAblehnung,setShowAblehnung]=useState(false);
   const [ablehnGrund,setAblehnGrund]=useState("");
@@ -1652,7 +1652,7 @@ function VorgangChecklist({checklist={},onChange,onLockSave,eventDate,currentEve
       </div>
     </div>}
     {/* FiBu Weiterleitung Modal */}
-    {showFiBu&&<FiBuModal currentEventId={currentEventId} event={ev} user={user} stammdaten={stammdaten} dayCalcs={dayCalcs} totalCosts={totalCosts} activeDays={activeDays} toast={toast} onClose={()=>setShowFiBu(false)} onSent={()=>{setShowFiBu(false);const now=Date.now();const newCL={...checklist,fibuWeitergeleitet:now,abgeschlossen:now};onChange(newCL);if(onLockSave)onLockSave(newCL);}}/>}
+    {showFiBu&&<FiBuModal currentEventId={currentEventId} event={ev} user={user} stammdaten={stammdaten} dayCalcs={dayCalcs} totalCosts={totalCosts} activeDays={activeDays} toast={toast} bereitschaften={bereitschaften} onClose={()=>setShowFiBu(false)} onSent={()=>{setShowFiBu(false);const now=Date.now();const newCL={...checklist,fibuWeitergeleitet:now,abgeschlossen:now};onChange(newCL);if(onLockSave)onLockSave(newCL);}}/>}
     <ConfirmModal open={!!confirmKey} title={confirmLabels[confirmKey]?.title||""} message={confirmLabels[confirmKey]?.msg||""} icon={confirmLabels[confirmKey]?.icon} accent={confirmLabels[confirmKey]?.accent} confirmText="Ja, sperren" cancelText="Abbrechen" onConfirm={confirmLock} onCancel={()=>setConfirmKey(null)}/>
   </div>);
 }
@@ -1660,8 +1660,8 @@ function VorgangChecklist({checklist={},onChange,onLockSave,eventDate,currentEve
 // ═══════════════════════════════════════════════════════════════════════════
 // ILS PREVIEW (with w3w in Sonstiges)
 // ═══════════════════════════════════════════════════════════════════════════
-function ILSPreview({event,days,stammdaten,user,updateEvent,currentEventId,saveEvent,toast}){
-  const bereitschaft=BEREITSCHAFTEN[stammdaten.bereitschaftIdx];
+function ILSPreview({event,days,stammdaten,user,updateEvent,currentEventId,saveEvent,toast,bereitschaften=[]}){
+  const bereitschaft=bereitschaften.find(b=>b.code===user?.bereitschaftCode)||bereitschaften[0]||{code:"",name:"",short:""};
   const activeDays=days.filter(d=>d.active);
   const firstDay=activeDays[0]||{};
   const lastDay=activeDays[activeDays.length-1]||firstDay;
@@ -1794,7 +1794,7 @@ function HistoryWidget({history}){
 // ═══════════════════════════════════════════════════════════════════════════
 // KUNDEN MANAGER TAB (v6.5 #4-6)
 // ═══════════════════════════════════════════════════════════════════════════
-function KundenManager({kunden,setKunden,user,toast,showConfirm}){
+function KundenManager({kunden,setKunden,user,toast,showConfirm,bereitschaften=[]}){
   const [edit,setEdit]=useState(null);
   const [csvMsg,setCsvMsg]=useState("");
   const [search,setSearch]=useState("");
@@ -1803,7 +1803,7 @@ function KundenManager({kunden,setKunden,user,toast,showConfirm}){
   const editRef=useRef(null);
   const isAdmin=user?.rolle==="admin";
   const empty={name:"",kundennummer:"",ansprechpartner:"",telefon:"",email:"",rechnungsempfaenger:"",reStrasse:"",rePlzOrt:"",anrede:"Sehr geehrte Damen und Herren,",bemerkung:""};
-  const bcName=(code)=>BEREITSCHAFTEN.find(b=>b.code===code)?.short||code||"?";
+  const bcName=(code)=>bereitschaften.find(b=>b.code===code)?.short||code||"?";
   const bcColor=(code)=>{const m={"BSOB":"#1565c0","BND":"#2e7d32","BBGH":"#6a1b9a","BKAHU":"#e65100","BKK":"#00838f","BWEIG":"#4e342e","KBL":"#c62828"};return m[code]||"#555";};
   const filtered=kunden.filter(k=>{
     if(bcFilter!=="alle"&&k.bereitschaft_code!==bcFilter)return false;
@@ -1859,7 +1859,7 @@ function KundenManager({kunden,setKunden,user,toast,showConfirm}){
       <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Kunden suchen..." style={{flex:1,minWidth:200,padding:"8px 12px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:13,fontFamily:FONT.sans,boxSizing:"border-box"}}/>
       {isAdmin&&<select value={bcFilter} onChange={e=>setBcFilter(e.target.value)} style={{padding:"8px 10px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:12,fontFamily:FONT.sans}}>
         <option value="alle">Alle Bereitschaften</option>
-        {BEREITSCHAFTEN.map(b=><option key={b.code} value={b.code}>{b.short}</option>)}
+        {bereitschaften.map(b=><option key={b.code} value={b.code}>{b.short}</option>)}
       </select>}
     </div>
     {/* Select all */}
@@ -1934,8 +1934,8 @@ function KundenManager({kunden,setKunden,user,toast,showConfirm}){
 // ═══════════════════════════════════════════════════════════════════════════
 // GEFAHRENANALYSE PDF
 // ═══════════════════════════════════════════════════════════════════════════
-function GefahrenPDF({day,calc,eventData,stammdaten,dayNum}){
-  const r=calc.risk,b=BEREITSCHAFTEN[stammdaten.bereitschaftIdx],ev=EVENT_TYPES.find(e=>e.id===day.eventTypeId);
+function GefahrenPDF({day,calc,eventData,stammdaten,dayNum,bereitschaften=[],user}){
+  const r=calc.risk,b=bereitschaften.find(x=>x.code===user?.bereitschaftCode)||{code:"",name:"",short:""},ev=EVENT_TYPES.find(e=>e.id===day.eventTypeId);
   return(<div className="pdf-page" style={{fontFamily:"Arial,sans-serif",fontSize:"10pt",color:"#000",background:"#fff",padding:"15mm 12mm",lineHeight:1.35,pageBreakAfter:"always"}}>
     <div style={{display:"flex",justifyContent:"space-between",borderBottom:`2pt solid ${C.rot}`,paddingBottom:8,marginBottom:12}}><div>{stammdaten.customLogo&&<img src={stammdaten.customLogo} alt="Logo" style={{height:28,width:"auto",marginBottom:4,display:"block"}}/>}<div style={{fontSize:"8pt",color:"#666"}}>{stammdaten.kvName}</div><div style={{fontSize:"13pt",fontWeight:"bold"}}>Gefahrenanalyse {dayNum}. Tag</div></div><div style={{textAlign:"right",fontSize:"9pt",fontWeight:"bold",color:C.rot}}>Sanitätswachdienst</div></div>
     <table style={{width:"100%",marginBottom:10,borderCollapse:"collapse"}}><tbody><tr><td style={{fontWeight:"bold"}}>{eventData.name}</td><td style={{textAlign:"right"}}>{fDate(day.date)} {day.startTime}—{day.endTime}</td></tr><tr><td colSpan={2} style={{textAlign:"right",fontSize:"9pt",color:"#666"}}>Einsatzdauer: <strong>{calc.h.toFixed(2).replace('.',',')} Std.</strong></td></tr></tbody></table>
@@ -2018,7 +2018,7 @@ function AngebotPDF({event,dayCalcs,totalCosts,stammdaten,activeDays,bereitschaf
   const euro=(v)=>{if(!v&&v!==0)return"";return new Intl.NumberFormat("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2}).format(v)+" €";};
   const num=(v)=>(v!==null&&v!==undefined&&v>0)?String(v):"";
   const fDate2=(d)=>d?new Date(d).toLocaleDateString("de-DE"):"";
-  const ortName=user?.ort||bereitschaft.name.replace(/^Bereitschaft\s*/i,"").trim()||"Schrobenhausen";
+  const ortName=user?.ort||bereitschaft.name.replace(/^Bereitschaft\s*/i,"").trim()||"";
   const fzRows=[
     tKtw>0&&{pos:"KTW",anz:tKtw,pers:dayCalcs.reduce((s,d)=>s+(d.kc>0?d.kpk||0:0),0)||null,km:null,hrs:null,rate:rates.ktw,summe:dayCalcs.reduce((s,d)=>s+(d.cK||0),0)},
     tRtw>0&&{pos:"RTW",anz:tRtw,pers:dayCalcs.reduce((s,d)=>s+(d.rc>0?d.kpr||0:0),0)||null,km:null,hrs:null,rate:rates.rtw,summe:dayCalcs.reduce((s,d)=>s+(d.cR||0),0)},
@@ -2191,7 +2191,7 @@ function AngebotPDF({event,dayCalcs,totalCosts,stammdaten,activeDays,bereitschaf
 // VERTRAG PDF
 // ═══════════════════════════════════════════════════════════════════════════
 function VertragPDF({event,dayCalcs,totalCosts,stammdaten,activeDays,bereitschaft,user}){
-  const vOrt=user?.ort||bereitschaft.name.replace(/^Bereitschaft\s*/i,"").trim()||"Schrobenhausen";
+  const vOrt=user?.ort||bereitschaft.name.replace(/^Bereitschaft\s*/i,"").trim()||"";
   const vUnterzeichner=user?.name||stammdaten.bereitschaftsleiter;
   const vTitel=user?.titel||stammdaten.bereitschaftsleiterTitle||"Bereitschaftsleiter";
   return(<div className="pdf-page" style={{fontFamily:"Arial,sans-serif",fontSize:"9.5pt",color:"#000",background:"#fff",padding:"12mm 12mm",lineHeight:1.5}}>
@@ -2648,12 +2648,13 @@ const RELEASE_V72={v:"v7.2",d:"03.03.2026",c:[
 export default function App(){
   const [user,setUser]=useState(null);
   const [authLoading,setAuthLoading]=useState(true);
+  const [bereitschaften,setBereitschaften]=useState([]);
   const [sessionExpired,setSessionExpired]=useState(false);
   useEffect(()=>{API._onSessionExpired=()=>setSessionExpired(true);return()=>{API._onSessionExpired=null;};},[]);
-  useEffect(()=>{API.getStatus().then(d=>{if(d.authenticated){const bc=d.user.bereitschaftCode;const bIdx=BEREITSCHAFTEN.findIndex(b=>b.code===bc);const u={sub:d.user.sub,name:d.user.name,email:d.user.email,bereitschaftCode:bc,bereitschaftIdx:bIdx>=0?bIdx:0,bereitschaft:(d.user.bereitschaft&&d.user.bereitschaft.name)||bc||"",rolle:d.user.rolle,telefon:"",mobil:"",titel:""};setUser(u);API.getProfile().then(p=>{if(p)setUser(prev=>({...prev,telefon:p.telefon||prev.telefon,mobil:p.mobil||prev.mobil,titel:p.titel||prev.titel,email:p.email||prev.email,ort:p.ort||prev.ort||'',signatur:p.unterschrift||prev.signatur||''}));}).catch(()=>{});}}).catch(()=>{}).finally(()=>setAuthLoading(false));},[]);
+  useEffect(()=>{API.getStatus().then(d=>{if(d.authenticated){const bc=d.user.bereitschaftCode;const bIdx=bereitschaften.findIndex(b=>b.code===bc);const u={sub:d.user.sub,name:d.user.name,email:d.user.email,bereitschaftCode:bc,bereitschaftIdx:bIdx>=0?bIdx:0,bereitschaft:(d.user.bereitschaft&&d.user.bereitschaft.name)||bc||"",rolle:d.user.rolle,telefon:"",mobil:"",titel:""};setUser(u);API.getBereitschaften().then(bcs=>{setBereitschaften(bcs||[]);}).catch(()=>{});API.getProfile().then(p=>{if(p)setUser(prev=>({...prev,telefon:p.telefon||prev.telefon,mobil:p.mobil||prev.mobil,titel:p.titel||prev.titel,email:p.email||prev.email,ort:p.ort||prev.ort||'',signatur:p.unterschrift||prev.signatur||''}));}).catch(()=>{});}}).catch(()=>{}).finally(()=>setAuthLoading(false));},[]);
   const [tab,setTab]=useState("events");
   const [stammdaten,setStammdaten]=useState(DEFAULT_STAMMDATEN);
-  const reloadStammdaten=useCallback(()=>{if(!user)return;API.getStammdaten().then(d=>{if(d){const bIdxS=user?BEREITSCHAFTEN.findIndex(b=>b.code===user.bereitschaftCode):-1;setStammdaten(prev=>({...prev,bereitschaftIdx:bIdxS>=0?bIdxS:prev.bereitschaftIdx,kvName:d.kv_name||prev.kvName,kgf:d.kgf||prev.kgf,kvAdresse:d.kv_adresse||prev.kvAdresse,kvPlzOrt:d.kv_plz_ort||prev.kvPlzOrt,bereitschaftsleiter:d.leiter_name||prev.bereitschaftsleiter,bereitschaftsleiterTitle:d.leiter_title||prev.bereitschaftsleiterTitle,telefon:d.telefon||prev.telefon,fax:d.fax||prev.fax,mobil:d.mobil||prev.mobil,email:d.email||prev.email,funkgruppe:d.funkgruppe||prev.funkgruppe,customLogo:d.logo||null,rates:d.kostensaetze?{helfer:d.kostensaetze.helfer,ktw:d.kostensaetze.ktw,rtw:d.kostensaetze.rtw,gktw:d.kostensaetze.gktw,einsatzleiter:d.kostensaetze.einsatzleiter,aerzte:0,einsatzleiterKfz:d.kostensaetze.einsatzleiter_kfz,mobileSanstation:d.kostensaetze.seg_lkw,segLkw:d.kostensaetze.seg_lkw,mtw:d.kostensaetze.mtw,zelt:d.kostensaetze.zelt,kmKtw:d.kostensaetze.km_ktw,kmRtw:d.kostensaetze.km_rtw,kmGktw:d.kostensaetze.km_gktw,kmElKfz:d.kostensaetze.km_el_kfz,kmSegLkw:d.kostensaetze.km_seg_lkw,kmMtw:d.kostensaetze.km_mtw,verpflegung:d.kostensaetze.verpflegung}:prev.rates}));}setStammdatenLoaded(true);}).catch(e=>{console.warn("Stammdaten laden:",e);setStammdatenLoaded(true);});},[user]);
+  const reloadStammdaten=useCallback(()=>{if(!user)return;API.getStammdaten().then(d=>{if(d){const bIdxS=user?bereitschaften.findIndex(b=>b.code===user.bereitschaftCode):-1;setStammdaten(prev=>({...prev,bereitschaftIdx:bIdxS>=0?bIdxS:prev.bereitschaftIdx,kvName:d.kv_name||prev.kvName,kgf:d.kgf||prev.kgf,kvAdresse:d.kv_adresse||prev.kvAdresse,kvPlzOrt:d.kv_plz_ort||prev.kvPlzOrt,bereitschaftsleiter:d.leiter_name||prev.bereitschaftsleiter,bereitschaftsleiterTitle:d.leiter_title||prev.bereitschaftsleiterTitle,telefon:d.telefon||prev.telefon,fax:d.fax||prev.fax,mobil:d.mobil||prev.mobil,email:d.email||prev.email,funkgruppe:d.funkgruppe||prev.funkgruppe,customLogo:d.logo||null,rates:d.kostensaetze?{helfer:d.kostensaetze.helfer,ktw:d.kostensaetze.ktw,rtw:d.kostensaetze.rtw,gktw:d.kostensaetze.gktw,einsatzleiter:d.kostensaetze.einsatzleiter,aerzte:0,einsatzleiterKfz:d.kostensaetze.einsatzleiter_kfz,mobileSanstation:d.kostensaetze.seg_lkw,segLkw:d.kostensaetze.seg_lkw,mtw:d.kostensaetze.mtw,zelt:d.kostensaetze.zelt,kmKtw:d.kostensaetze.km_ktw,kmRtw:d.kostensaetze.km_rtw,kmGktw:d.kostensaetze.km_gktw,kmElKfz:d.kostensaetze.km_el_kfz,kmSegLkw:d.kostensaetze.km_seg_lkw,kmMtw:d.kostensaetze.km_mtw,verpflegung:d.kostensaetze.verpflegung}:prev.rates}));}setStammdatenLoaded(true);}).catch(e=>{console.warn("Stammdaten laden:",e);setStammdatenLoaded(true);});},[user]);
   useEffect(()=>{reloadStammdaten();},[user]);
   useEffect(()=>{
   if(!user||user.rolle==="helfer")return;
@@ -2680,7 +2681,6 @@ export default function App(){
   const [mappePending,setMappePending]=useState(false);
   const [mappeModal,setMappeModal]=useState(false);
   const [ncEnabled,setNcEnabled]=useState(false);
-  const [bereitschaften,setBereitschaften]=useState([]);
   const [smtpEnabled,setSmtpEnabled]=useState(false);
   const [mailModal,setMailModal]=useState(false);
   const [epLive,setEpLive]=useState(false);
@@ -2736,8 +2736,8 @@ export default function App(){
   const [year,setYear]=useState(new Date().getFullYear());
   const [anfragenNeu,setAnfragenNeu]=useState(0);
   useEffect(()=>{if(!user)return;const poll=()=>API.getAnfragenCount().then(d=>setAnfragenNeu(d.neu||0)).catch(()=>{});poll();const iv=setInterval(poll,60000);return()=>clearInterval(iv);},[user,tab]);
-  const storagePrefix=useMemo(()=>`sanwd:${user?.bereitschaftCode||BEREITSCHAFTEN[stammdaten.bereitschaftIdx]?.code||"BSOB"}:${year}`,[stammdaten.bereitschaftIdx,year]);
-  const kundenKey=useMemo(()=>`sanwd:${BEREITSCHAFTEN[stammdaten.bereitschaftIdx].code}:kunden`,[stammdaten.bereitschaftIdx]);
+  const storagePrefix=useMemo(()=>`sanwd:${user?.bereitschaftCode||"SETUP"}:${year}`,[user?.bereitschaftCode,year]);
+  const kundenKey=useMemo(()=>`sanwd:${user?.bereitschaftCode||"SETUP"}:kunden`,[user?.bereitschaftCode]);
 
   useEffect(()=>{if(!user)return;(async()=>{try{const k=await API.getKunden();setKunden(k);}catch{setKunden([]);}try{const kl=await API.getKlauseln();setKlauseln(kl);const ed={};kl.forEach(k=>ed[k.id]=k.inhalt);setKlauselnEdit(ed);}catch(e){console.error("Fehler:",e);}})();},[user,kundenKey]);
 
@@ -2747,13 +2747,13 @@ export default function App(){
 
   useEffect(()=>{if(!user)return;(async()=>{try{const c=await API.getCounter(year);setLaufendeNr(c.nextNr||1);}catch(e){console.error("Fehler:",e);}})();},[user,year]);
 
-  const generateNr=useCallback(()=>{const b=BEREITSCHAFTEN[stammdaten.bereitschaftIdx];const yr=String(year).slice(-2);const nr=String(laufendeNr).padStart(3,"0");setEvent(p=>({...p,auftragsnr:`${b.code} ${yr}/${nr}`}));const next=laufendeNr+1;setLaufendeNr(next);if(user)try{API.incrementCounter(year).catch(()=>{});}catch(e){console.error("Fehler:",e);}},[stammdaten.bereitschaftIdx,laufendeNr,year,user,storagePrefix]);
+  const generateNr=useCallback(()=>{const b=bereitschaften.find(x=>x.code===user?.bereitschaftCode)||{code:"XX"};const yr=String(year).slice(-2);const nr=String(laufendeNr).padStart(3,"0");setEvent(p=>({...p,auftragsnr:`${b.code} ${yr}/${nr}`}));const next=laufendeNr+1;setLaufendeNr(next);if(user)try{API.incrementCounter(year).catch(()=>{});}catch(e){console.error("Fehler:",e);}},[user?.bereitschaftCode,bereitschaften,laufendeNr,year,storagePrefix]);
 
   const saveEvent=useCallback(async()=>{
   /* Lock-Check entfernt - Backend prueft serverseitig, initialer Save muss durchgehen */
     // Auto-Nummer wenn noch keine gesetzt
     if(!event.auftragsnr){
-      const b=BEREITSCHAFTEN[stammdaten.bereitschaftIdx];
+      const b=bereitschaften.find(x=>x.code===user?.bereitschaftCode)||{code:""};
       const yr=String(year).slice(-2);
       try{
         const res=await API.incrementCounter(year);
@@ -2763,7 +2763,7 @@ export default function App(){
         setLaufendeNr(prev=>prev+1);
       }catch(e){console.error("Fehler:",e);}
     }if(!user)return;setSaving(true);const id=currentEventId||`evt-${Date.now()}`;if(!currentEventId)setCurrentEventId(id);try{
-      const bc=BEREITSCHAFTEN[stammdaten.bereitschaftIdx]?.code;
+      const bc=(user?.bereitschaftCode||"");
       await API.saveVorgang(id,{id,event,days,year,updatedAt:Date.now(),activeDays:days.filter(d=>d.active).length,createdBy:user.name,bereitschaftCode:bc});
       upsertKunde(event);
       console.log("✅ Gespeichert:",id);
@@ -2774,7 +2774,7 @@ export default function App(){
         console.error("❌ Speichern fehlgeschlagen:",e.message,e);
         toast("Speichern fehlgeschlagen: "+e.message,"error");
       }
-    }setSaving(false);},[user,currentEventId,event,days,stammdaten.bereitschaftIdx,upsertKunde,year]);
+    }setSaving(false);},[user,currentEventId,event,days,user?.bereitschaftCode,upsertKunde,year]);
 
   useEffect(()=>{if(!user||!currentEventId||tab==="events")return;if(event?.checklist?.angebotVersendet||event?.checklist?.abgeschlossen)return;if(lockInfo&&lockInfo.locked&&lockInfo.lockedBy!==user?.name)return;const t=setTimeout(saveEvent,2000);return()=>clearTimeout(t);},[event,days,currentEventId,user,tab,saveEvent,lockInfo]);
 
@@ -2800,7 +2800,7 @@ export default function App(){
   const dayCalcs=useMemo(()=>activeDays.map(d=>calcDay(d,stammdaten.rates,event.verpflegung)),[activeDays,stammdaten.rates,event.verpflegung]);
   const totalCosts=useMemo(()=>dayCalcs.reduce((s,d)=>s+d.total,0),[dayCalcs]);
   const f$=(v)=>new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"}).format(v);
-  const bereitschaft=BEREITSCHAFTEN[stammdaten.bereitschaftIdx];
+  const bereitschaft=bereitschaften.find(b=>b.code===user?.bereitschaftCode)||bereitschaften[0]||{code:"",name:"",short:""};
 
   const handlePrint=()=>{const pc=printRef.current;if(!pc)return;const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><title>SanWD ${event.name}</title><style>@page{size:A4;margin:15mm 12mm 20mm 12mm}body{margin:0;font-family:Arial,sans-serif;font-size:9.5pt}.pdf-page{page-break-after:always}.brk-absatz{page-break-inside:avoid}.brk-break{page-break-before:always}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>${pc.innerHTML}</body></html>`);w.document.close();setTimeout(()=>{const allPages=w.document.querySelectorAll('.pdf-page');const total=allPages.length;if(total>0){allPages.forEach((pg,i)=>{const f=w.document.createElement('div');f.style.cssText='text-align:center;font-size:8pt;color:#999;padding-top:6px;';f.textContent='Seite '+(i+1)+' von '+total;pg.appendChild(f);});}w.print();},400);};
 
@@ -2949,7 +2949,7 @@ export default function App(){
       <main className="r-main" style={{maxWidth:1100,margin:"0 auto",padding:"16px 14px"}}>
 
         {/* VORGÄNGE + ARCHIV */}
-        {tab==="events"&&<VorgaengeListe bereitschaftCode={BEREITSCHAFTEN[stammdaten.bereitschaftIdx].code} user={user} onLoad={loadEvent} onNew={newEvent} onCopy={copyEvent} bereitschaft={bereitschaft} allBereitschaften={BEREITSCHAFTEN} toast={toast} showConfirm={showConfirm}/>}
+        {tab==="events"&&<VorgaengeListe bereitschaftCode={(user?.bereitschaftCode||"")} user={user} onLoad={loadEvent} onNew={newEvent} onCopy={copyEvent} bereitschaft={bereitschaft} allBereitschaften={bereitschaften} toast={toast} showConfirm={showConfirm}/>}
 
         {/* VERANSTALTUNG */}
         {tab==="event"&&(<div>
@@ -2960,7 +2960,7 @@ export default function App(){
               {(isLocked||isEditLocked)&&<div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:"rgba(255,255,255,0.55)",zIndex:10,borderRadius:8,pointerEvents:"all"}}/>}
               <Card title="Auftrag" accent={C.rot} sub={event.auftragsnr?`Nr. ${event.auftragsnr}`:"Noch keine Nummer"} action={<div style={{display:"flex",gap:6}}><Btn small onClick={generateNr} icon="🔢">Nr. generieren</Btn><Btn small variant="success" onClick={saveEvent} icon="💾" disabled={isLocked}>Speichern</Btn></div>}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"0 16px",className:"rg3"}}>
-                  <Sel label="Bereitschaft" value={stammdaten.bereitschaftIdx} onChange={v=>updateStamm("bereitschaftIdx",v)} disabled={user?.rolle!=="admin"&&user?.rolle!=="kbl"} options={(user?.rolle==="admin"||user?.rolle==="kbl")?BEREITSCHAFTEN.map((b,i)=>({value:i,label:`${b.code} — ${b.name}`})):BEREITSCHAFTEN.map((b,i)=>({value:i,label:`${b.code} — ${b.name}`})).filter(o=>BEREITSCHAFTEN[o.value]?.code===user?.bereitschaftCode)}/>
+                  <Sel label="Bereitschaft" value={user?.bereitschaftCode||""} disabled={true} options={bereitschaften.map(b=>({value:b.code,label:`${b.code} — ${b.name}`}))}/>
                   <Inp label="Auftragsnummer" value={event.auftragsnr} onChange={v=>updateEvent("auftragsnr",v)} placeholder="Auto-generiert"/>
                   <Sel label="Planjahr" value={year} onChange={v=>setYear(Number(v))} options={[{value:new Date().getFullYear(),label:String(new Date().getFullYear())},{value:new Date().getFullYear()+1,label:String(new Date().getFullYear()+1)+" (Vorplanung)"}]}/>
                 </div>
@@ -3031,7 +3031,7 @@ export default function App(){
             {/* RIGHT COLUMN: Checkliste */}
             <div>
               <Card title="Checkliste" accent="#d4920a" sub="Vorgangs-Status">
-                <VorgangChecklist checklist={event.checklist||{}} onChange={updateChecklist} onLockSave={async(newCL)=>{const id=currentEventId;if(!id||!user)return;try{const bc=BEREITSCHAFTEN[stammdaten.bereitschaftIdx]?.code;const lockEvent={...event,checklist:newCL};await API.saveVorgang(id,{id,event:lockEvent,days,year,updatedAt:Date.now(),activeDays:days.filter(d=>d.active).length,createdBy:user.name,bereitschaftCode:bc});console.log("Lock-Save OK:",id);toast("Status gespeichert","success");}catch(e){console.error("Lock-Save Fehler:",e);toast("Speichern fehlgeschlagen: "+e.message,"error");}}} eventDate={activeDays[activeDays.length-1]?.date||activeDays[0]?.date} currentEventId={currentEventId} event={event} user={user} stammdaten={stammdaten} dayCalcs={dayCalcs} totalCosts={totalCosts} activeDays={activeDays} toast={toast}/>
+                <VorgangChecklist checklist={event.checklist||{}} onChange={updateChecklist} onLockSave={async(newCL)=>{const id=currentEventId;if(!id||!user)return;try{const bc=(user?.bereitschaftCode||"");const lockEvent={...event,checklist:newCL};await API.saveVorgang(id,{id,event:lockEvent,days,year,updatedAt:Date.now(),activeDays:days.filter(d=>d.active).length,createdBy:user.name,bereitschaftCode:bc});console.log("Lock-Save OK:",id);toast("Status gespeichert","success");}catch(e){console.error("Lock-Save Fehler:",e);toast("Speichern fehlgeschlagen: "+e.message,"error");}}} eventDate={activeDays[activeDays.length-1]?.date||activeDays[0]?.date} currentEventId={currentEventId} event={event} user={user} stammdaten={stammdaten} dayCalcs={dayCalcs} totalCosts={totalCosts} activeDays={activeDays} toast={toast} bereitschaften={bereitschaften}/>
               </Card>
               <Card title="Zusammenfassung">
                 <div style={{display:"grid",gap:6}}>
@@ -3149,11 +3149,11 @@ export default function App(){
             </div>
           </Card>
           <div ref={printRef} style={{background:"#fff",borderRadius:8,overflow:"hidden"}}>
-            {pdfView==="gefahren"&&activeDays.map((d,i)=><GefahrenPDF key={i} day={d} calc={dayCalcs[i]} eventData={event} stammdaten={stammdaten} dayNum={i+1}/>)}
+            {pdfView==="gefahren"&&activeDays.map((d,i)=><GefahrenPDF key={i} day={d} calc={dayCalcs[i]} eventData={event} stammdaten={stammdaten} dayNum={i+1} bereitschaften={bereitschaften} user={user}/>)}
             {pdfView==="angebot"&&<div data-print="angebot"><AngebotPDF event={event} dayCalcs={dayCalcs} totalCosts={totalCosts} stammdaten={stammdaten} activeDays={activeDays} bereitschaft={bereitschaft} user={user}/></div>}
             {pdfView==="vertrag"&&<Card accent={C.dunkelblau}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}><span style={{fontSize:20}}>📄</span><div><div style={{fontSize:14,fontWeight:700,color:C.dunkelblau}}>Vereinbarung</div><div style={{fontSize:11,color:C.dunkelgrau}}>Serverseitig generiertes PDF mit Seitenzahlen</div></div></div><Btn variant="primary" onClick={async()=>{if(!currentEventId){toast("Bitte zuerst Vorgang speichern","warning");return;}setVertragPending(true);await saveEvent();try{const r=await fetch("/api/pdf/vertrag/"+currentEventId,{method:"POST",credentials:"include"});if(!r.ok){const e=await r.json();toast(e.error||"Fehler","error");return;}const blob=await r.blob();const url=URL.createObjectURL(blob);window.open(url,"_blank");}catch(e){toast(e.message,"error");}finally{setVertragPending(false);}}} disabled={vertragPending}>{vertragPending?"Erstelle PDF...":"Vertrag-PDF generieren und öffnen"}</Btn></Card>}
             {pdfView==="aab"&&<div data-print="aab"><AABPDF stammdaten={stammdaten} bereitschaft={bereitschaft}/></div>}
-            {pdfView==="ils"&&<ILSPreview event={event} days={days} stammdaten={stammdaten} user={user} updateEvent={updateEvent} currentEventId={currentEventId} saveEvent={saveEvent} toast={toast}/>}
+            {pdfView==="ils"&&<ILSPreview event={event} days={days} stammdaten={stammdaten} user={user} updateEvent={updateEvent} currentEventId={currentEventId} saveEvent={saveEvent} toast={toast} bereitschaften={bereitschaften}/>}
             {pdfView==="einsatzprotokoll"&&<div>
               <div style={{display:"flex",gap:6,marginBottom:12}}>
                 <Btn variant={!epLive?"primary":"secondary"} small onClick={()=>setEpLive(false)}>🖨️ PDF Druck</Btn>
@@ -3179,7 +3179,7 @@ export default function App(){
         </div>)}
 
         {/* KUNDEN */}
-        {tab==="kunden"&&<KundenManager kunden={kunden} setKunden={setKunden} user={user} toast={toast} showConfirm={showConfirm}/>}
+        {tab==="kunden"&&<KundenManager kunden={kunden} setKunden={setKunden} user={user} toast={toast} showConfirm={showConfirm} bereitschaften={bereitschaften}/>}
 
         {/* STAMMDATEN */}
 
@@ -3389,7 +3389,7 @@ export default function App(){
       )}
       {tab==="anfragen"&&<AnfragenTab user={user} toast={toast} bereitschaften={bereitschaften} onOpenVorgang={(id)=>{setCurrentEventId(id);API.json(`/api/vorgaenge/${year}?bc=ALL`).then(r=>{const v=r.find(v=>v.id===id);if(v){setEvent({...EMPTY_EVENT,...(v.event||{})});setDays(v.days||Array.from({length:8},(_,i)=>mkDay(i+1)));setTab("event");}}).catch(()=>setTab("events"));}}/>}
 
-      {tab==="statistik"&&<StatistikDashboard user={user} year={year} toast={toast}/>}
+      {tab==="statistik"&&<StatistikDashboard user={user} year={year} toast={toast} bereitschaften={bereitschaften}/>}
 
       {tab==="profil"&&(<div style={{maxWidth:550}}>
             <Card title="👤 Mein Profil" accent={C.rot} sub="Persönliche Kontaktdaten (nur für Sie)">
@@ -3414,7 +3414,7 @@ export default function App(){
             <BereitschaftProfilCard stammdaten={stammdaten} updateStamm={updateStamm} user={user} toast={toast} bereitschaft={bereitschaft}/>
         </div>)}
 
-      {tab==="einstellungen"&&user?.rolle==="admin"&&<EinstellungenTab stammdaten={stammdaten} updateStamm={updateStamm} updateRate={updateRate} user={user} toast={toast} klauseln={klauseln} klauselnEdit={klauselnEdit} setKlauselnEdit={setKlauselnEdit} klauselnSaving={klauselnSaving} saveKlauseln={saveKlauseln} bereitschaft={bereitschaft} reloadStammdaten={reloadStammdaten}/>}
+      {tab==="einstellungen"&&user?.rolle==="admin"&&<EinstellungenTab stammdaten={stammdaten} updateStamm={updateStamm} updateRate={updateRate} user={user} toast={toast} klauseln={klauseln} klauselnEdit={klauselnEdit} setKlauselnEdit={setKlauselnEdit} klauselnSaving={klauselnSaving} saveKlauseln={saveKlauseln} bereitschaft={bereitschaft} reloadStammdaten={reloadStammdaten} bereitschaften={bereitschaften}/>}
       </main>
       {/* HAMBURGER DRAWER (mobile) */}
       {menuOpen&&<div className="drawer-overlay open" onClick={()=>setMenuOpen(false)}/>}
@@ -3446,7 +3446,7 @@ export default function App(){
         else if(attachType==="angebot"){newCL.angebotVersendet=newCL.angebotVersendet||now;}
         if(attachType==="mappe"||attachType==="angebot"){
           setEvent(p=>({...p,checklist:newCL}));
-          try{const bc=BEREITSCHAFTEN[stammdaten.bereitschaftIdx]?.code;await API.saveVorgang(currentEventId,{id:currentEventId,event:{...event,checklist:newCL},days,year,updatedAt:now,activeDays:days.filter(d=>d.active).length,createdBy:user?.name,bereitschaftCode:bc});toast("Checkliste aktualisiert + Vorgang gesperrt","success");}catch(e){console.error("Checklist-Save:",e);}
+          try{const bc=(user?.bereitschaftCode||"");await API.saveVorgang(currentEventId,{id:currentEventId,event:{...event,checklist:newCL},days,year,updatedAt:now,activeDays:days.filter(d=>d.active).length,createdBy:user?.name,bereitschaftCode:bc});toast("Checkliste aktualisiert + Vorgang gesperrt","success");}catch(e){console.error("Checklist-Save:",e);}
         }
       }}/>}
 
