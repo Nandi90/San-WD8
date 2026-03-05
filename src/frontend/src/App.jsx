@@ -2726,12 +2726,12 @@ function SetupWizard({onComplete,user}){
 
       {/* ── Header: Logo-Zone (weiß) + Titel-Zone (rot) ── */}
       <div style={{display:"flex",alignItems:"stretch"}}>
-        {/* Logo auf weißem Grund – CI-konform */}
-        <div style={{background:CI.weiss,padding:"12px 20px",display:"flex",alignItems:"center",flexShrink:0,borderRight:`4px solid ${CI.rot}`}}>
-          <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:60,width:"auto"}}/>
-        </div>
-        {/* Titel auf Rot */}
-        <div style={{background:CI.rot,flex:1,padding:"0 24px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+        {/* Titel auf Rot – Logo schwebt darüber */}
+        <div style={{background:CI.rot,flex:1,padding:"0 24px 0 20px",display:"flex",alignItems:"center",gap:20}}>
+          <div style={{background:CI.weiss,borderRadius:10,padding:"10px 14px",boxShadow:"0 4px 16px rgba(0,0,0,0.18)",flexShrink:0,display:"flex",alignItems:"center"}}>
+            <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:58,width:"auto"}}/>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>Ersteinrichtung</div>
           <div style={{fontSize:20,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanEvent</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:3,letterSpacing:"0.03em"}}>Sanitätswachdienst · Kalkulation und Abrechnung</div>
