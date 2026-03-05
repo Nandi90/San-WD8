@@ -2664,8 +2664,6 @@ function SetupWizard({onComplete,user}){
   const removeBC=async(code)=>{setSaving(true);setError("");try{await API.deleteBereitschaft(code);await loadBCs();}catch(e){setError(e.message);}finally{setSaving(false);}};
   const saveRates=async()=>{setSaving(true);setError("");try{await API.applyKostensaetzeAll(rates);setStep(4);}catch(e){setError(e.message);}finally{setSaving(false);}};
   const finish=async()=>{setSaving(true);setError("");try{if(org.kv_name)await API.saveOrganisation(org);await API.completeSetup();onComplete();}catch(e){setError(e.message);}finally{setSaving(false);}};
-  const sL={fontSize:11,fontWeight:600,color:"#555",marginBottom:3,display:"block"};
-  const sI={width:"100%",padding:"9px 12px",border:"1px solid #ddd",borderRadius:6,fontSize:13,fontFamily:FONT.sans,boxSizing:"border-box"};
   const steps=[{n:1,l:"Organisation"},{n:2,l:"Bereitschaften"},{n:3,l:"Kostensätze"},{n:4,l:"Abschluss"}];
   // ── DRK-Bereitschaften CI (Styleguide DRK / Bereitschaften) ──────
   // Primär:    Rot #E60005 · Schwarz #1A1A18 · Dunkelgrau #4A4A49 (Logo-Zusatz)
