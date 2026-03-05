@@ -2724,13 +2724,16 @@ function SetupWizard({onComplete,user}){
   <div style={{minHeight:"100vh",background:CI.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"system-ui,-apple-system,sans-serif"}}>
     <div style={{background:CI.weiss,borderRadius:2,maxWidth:720,width:"100%",boxShadow:"0 2px 16px rgba(26,26,24,0.10)",overflow:"hidden"}}>
 
-      {/* ── Header: Rot-Balken mit Kreuz-Symbol + Titel ── */}
-      <div style={{background:CI.rot,padding:"0 32px",display:"flex",alignItems:"stretch",minHeight:72}}>
-        {/* BRK Bereitschaften Logo (outline, weiße Schrift → direkt auf Rot) */}
-        <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:68,width:"auto",flexShrink:0,padding:"8px 20px 8px 0",mixBlendMode:"multiply"}}/>
-        <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
-          <div style={{fontSize:18,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif"}}>San-Auftragsmanager – Ersteinrichtung</div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",marginTop:3,letterSpacing:"0.04em"}}>Konfigurationsassistent</div>
+      {/* ── Header: Logo-Zone (weiß) + Titel-Zone (rot) ── */}
+      <div style={{display:"flex",alignItems:"stretch"}}>
+        {/* Logo auf weißem Grund – CI-konform */}
+        <div style={{background:CI.weiss,padding:"12px 20px",display:"flex",alignItems:"center",flexShrink:0,borderRight:`4px solid ${CI.rot}`}}>
+          <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:60,width:"auto"}}/>
+        </div>
+        {/* Titel auf Rot */}
+        <div style={{background:CI.rot,flex:1,padding:"0 24px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>Ersteinrichtung</div>
+          <div style={{fontSize:20,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanWD-Auftragsmanagement</div>
         </div>
       </div>
 
