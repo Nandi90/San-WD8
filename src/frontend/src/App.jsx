@@ -2770,7 +2770,7 @@ function FeedbackButton({user,currentView,toast}){
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════════════════════════
-const TABS=[{id:"events",label:"Vorgänge",icon:"📁"},{id:"event",label:"Veranstaltung",icon:"📋"},{id:"days",label:"Tage & Analyse",icon:"📊"},{id:"costs",label:"Kosten",icon:"💰"},{id:"pdf",label:"Dokumente",icon:"🖨️"},{id:"kunden",label:"Kunden",icon:"👥"},{id:"anfragen",label:"Anfragen",icon:"📩"},{id:"statistik",label:"Statistik",icon:"📈"},{id:"profil",label:"Mein Profil",icon:"👤"},{id:"einstellungen",label:"Einstellungen",icon:"⚙️",admin:true},{id:"releases",label:"Changelog",icon:"🆕"}];
+const TABS=[{id:"events",label:"Vorgänge",icon:"📁"},{id:"event",label:"Veranstaltung",icon:"📋"},{id:"days",label:"Tage & Analyse",icon:"📊"},{id:"costs",label:"Kosten",icon:"💰"},{id:"pdf",label:"Dokumente",icon:"🖨️"},{id:"kunden",label:"Kunden",icon:"👥"},{id:"anfragen",label:"Anfragen",icon:"📩"},{id:"statistik",label:"Statistik",icon:"📈"},{id:"profil",label:"Mein Profil",icon:"👤"},{id:"benutzer",label:"Benutzer",icon:"👥",admin:true},{id:"einstellungen",label:"Einstellungen",icon:"⚙️",admin:true},{id:"releases",label:"Changelog",icon:"🆕"}];
 const APP_VERSION="v8.0";
 const LATEST_RELEASE={v:"v7.6",d:"04.03.2026",c:[
 "FiBu: Weiterleitung per E-Mail mit Angebots-PDF als Anhang",
@@ -3883,6 +3883,13 @@ export default function App(){
             <BereitschaftProfilCard stammdaten={stammdaten} updateStamm={updateStamm} user={user} toast={toast} bereitschaft={bereitschaft}/>
         </div>)}
 
+      {tab==="benutzer"&&user?.rolle==="admin"&&<div style={{padding:"0 4px"}}>
+        <div style={{marginBottom:16}}>
+          <h2 style={{margin:0,fontSize:17,fontWeight:800,color:C.dunkelgrau}}>Benutzerverwaltung</h2>
+          <p style={{margin:"4px 0 0",fontSize:12,color:C.bgrau}}>Lokale Benutzer anlegen, Rollen und Bereitschaften zuweisen.</p>
+        </div>
+        <LocalUserAdmin toast={toast} bereitschaften={bereitschaften} authMode={appInfo.auth_mode||"oidc"}/>
+      </div>}
       {tab==="einstellungen"&&user?.rolle==="admin"&&<EinstellungenTab stammdaten={stammdaten} updateStamm={updateStamm} updateRate={updateRate} user={user} toast={toast} klauseln={klauseln} klauselnEdit={klauselnEdit} setKlauselnEdit={setKlauselnEdit} klauselnSaving={klauselnSaving} saveKlauseln={saveKlauseln} bereitschaft={bereitschaft} reloadStammdaten={reloadStammdaten} bereitschaften={bereitschaften}/>}
       </main>
       {/* HAMBURGER DRAWER (mobile) */}
