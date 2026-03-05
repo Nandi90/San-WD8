@@ -300,7 +300,10 @@ app.get("/api/health", (req, res) => {
 // Öffentlicher Endpunkt – kein Auth nötig – für Login-Seite
 app.get("/api/public/appinfo", (req, res) => {
   try {
-    const stamm = db.getDb().prepare("SELECT kv_name, logo FROM stammdaten LIMIT 1").get() || {};
+    // kv_name + logo kommen aus der bereitschaften-Tabelle (es gibt keine separate stammdaten-Tabelle)
+    const stamm = db.getDb().prepare(
+      "SELECT kv_name, logo FROM bereitschaften WHERE kv_name IS NOT NULL AND kv_name != '' ORDER BY kv_name LIMIT 1"
+    ).get() || {};
     const oidcLabel = db.getConfig("oidc_login_label", "Mit OIDC anmelden");
     const authMode = db.getConfig("auth_mode", process.env.OIDC_ISSUER ? "oidc" : "local");
     res.json({

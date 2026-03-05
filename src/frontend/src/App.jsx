@@ -741,7 +741,7 @@ function StatistikDashboard({user,year:appYear,toast,bereitschaften=[]}){
 const ROLLEN_LABEL={admin:"Admin",kbl:"KBL",bl:"BL",se:"SE",helfer:"Helfer"};
 const ROLLEN_COLOR={admin:"#c62828",kbl:"#e65100",bl:"#1565c0",se:"#1b5e20",helfer:"#555"};
 
-function LocalUserAdmin({toast,bereitschaften=[]}){
+function LocalUserAdmin({toast,bereitschaften=[],authMode="local"}){
   const [users,setUsers]=useState([]);
   const [loading,setLoading]=useState(true);
   const [showNew,setShowNew]=useState(false);
@@ -799,10 +799,17 @@ function LocalUserAdmin({toast,bereitschaften=[]}){
   </div>);
 
   return(<div style={{maxWidth:800}}>
+    {/* Auth-Modus Banner */}
+    {authMode!=="local"&&<div style={{padding:"10px 14px",background:"#fff8e1",border:"1px solid #ffe082",borderRadius:6,marginBottom:16,fontSize:12,color:"#7a5800",lineHeight:1.5}}>
+      ⚠️ <strong>Aktuell aktiv: OIDC / Keycloak-Modus.</strong> Lokale Benutzer werden erst verwendet wenn du unter <em>Organisation → Anmeldung</em> auf „Lokale Benutzer" umschaltest. Du kannst Benutzer trotzdem schon anlegen.
+    </div>}
+    {authMode==="local"&&<div style={{padding:"10px 14px",background:"#e8f5e9",border:"1px solid #a5d6a7",borderRadius:6,marginBottom:16,fontSize:12,color:"#2e7d32",lineHeight:1.5}}>
+      ✅ <strong>Lokaler Modus aktiv.</strong> Benutzer melden sich mit Benutzername und Passwort an. Weise ihnen Rolle und Bereitschaft zu.
+    </div>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div>
         <h3 style={{margin:0,fontSize:15,fontWeight:700,color:C.dunkelgrau}}>Lokale Benutzer</h3>
-        <div style={{fontSize:11,color:C.bgrau,marginTop:2}}>Für Instanzen ohne OIDC/Keycloak. Passwort-basierte Anmeldung.</div>
+        <div style={{fontSize:11,color:C.bgrau,marginTop:2}}>Passwort-basierte Anmeldung ohne OIDC/Keycloak.</div>
       </div>
       <Btn onClick={startNew} icon="➕" variant="primary" small>Neuer Benutzer</Btn>
     </div>
@@ -896,7 +903,7 @@ function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln
 
     {sub==="bereitschaften"&&<BereitschaftenAdmin toast={toast} userBC={user?.bereitschaftCode} reloadStammdaten={reloadStammdaten}/>}
 
-    {sub==="benutzer"&&<LocalUserAdmin toast={toast} bereitschaften={bereitschaften}/>}
+    {sub==="benutzer"&&<LocalUserAdmin toast={toast} bereitschaften={bereitschaften} authMode={authMode}/>}
 
     {sub==="kosten"&&<div style={{maxWidth:600}}>
       <Card title="Kostensätze (EUR)" accent="#d4920a"><div className="rg2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 10px"}}>{[["Helfer (€/Std)","helfer"],["KTW","ktw"],["RTW","rtw"],["GKTW","gktw"],["EL (€/Std)","einsatzleiter"],["EL-KFZ","einsatzleiterKfz"],["SEG-LKW","segLkw"],["MTW","mtw"],["Zelt","zelt"],["Verpfl. (€/P/8h)","verpflegung"]].map(([l,k])=><Inp key={k} small label={l} type="number" min={0} step={0.5} value={stammdaten.rates[k]} onChange={v=>updateRate(k,v)}/>)}</div></Card>
@@ -2660,42 +2667,47 @@ function LoginPage({appInfo}){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:C.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT.sans}}>
+    <div style={{minHeight:"100vh",background:`linear-gradient(160deg,#f5f6fa 0%,#ebedf2 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:FONT.sans}}>
       <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-      <div style={{width:440,padding:40}}>
-        {/* Logo & Header */}
-        <div style={{textAlign:"center",marginBottom:32}}>
-          {appInfo.logo
-            ?<img src={appInfo.logo} alt="Logo" style={{height:100,width:"auto",display:"block",margin:"0 auto 12px"}}/>
-            :<BRKLogo size={80} full customLogo={null}/>
-          }
-          <h1 style={{margin:"12px 0 4px",fontSize:20,fontWeight:800,color:C.schwarz}}>{appInfo.kv_name||"SanWD"}</h1>
-          <p style={{margin:0,fontSize:13,color:C.dunkelgrau}}>Sanitätswachdienst · Kalkulation und Abrechnung</p>
+      <div style={{width:"100%",maxWidth:420,padding:"0 20px"}}>
+
+        {/* Logo & Header – zentriert */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",marginBottom:28}}>
+          <div style={{width:96,height:96,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,background:C.weiss,borderRadius:"50%",boxShadow:"0 2px 12px #0001",padding:8,flexShrink:0}}>
+            {appInfo.logo
+              ?<img src={appInfo.logo} alt="Logo" style={{maxWidth:"100%",maxHeight:"100%",objectFit:"contain",display:"block"}}/>
+              :<BRKLogo size={60} full customLogo={null}/>
+            }
+          </div>
+          <h1 style={{margin:"0 0 4px",fontSize:20,fontWeight:800,color:C.schwarz,textAlign:"center",letterSpacing:"-0.3px"}}>{appInfo.kv_name||"SanWD"}</h1>
+          <p style={{margin:0,fontSize:12,color:C.dunkelgrau,textAlign:"center",letterSpacing:"0.02em"}}>Sanitätswachdienst · Kalkulation und Abrechnung</p>
         </div>
 
-        {/* Lokaler Login */}
-        {isLocal&&(
-          <div style={{background:C.weiss,borderRadius:8,border:`1px solid ${C.mittelgrau}40`,borderTop:`3px solid ${C.rot}`,padding:"18px 22px",marginBottom:12,boxShadow:"0 1px 4px #0001"}}>
+        {/* Login-Card */}
+        <div style={{background:C.weiss,borderRadius:10,border:`1px solid ${C.mittelgrau}30`,borderTop:`3px solid ${C.rot}`,padding:"22px 24px",boxShadow:"0 2px 16px #0002"}}>
+
+          {/* Lokaler Login */}
+          {isLocal&&(<>
             <div style={{marginBottom:14}}>
-              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:3,fontWeight:600}}>Benutzername</label>
-              <input value={localUser} onChange={e=>setLocalUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Benutzername" style={{width:"100%",padding:"9px 10px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans}} autoFocus/>
+              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:4,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em"}}>Benutzername</label>
+              <input value={localUser} onChange={e=>setLocalUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Benutzername eingeben" style={{width:"100%",padding:"10px 11px",border:`1px solid ${C.mittelgrau}`,borderRadius:5,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans,outline:"none",transition:"border-color .15s"}} autoFocus/>
             </div>
             <div style={{marginBottom:16}}>
-              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:3,fontWeight:600}}>Passwort</label>
-              <input type="password" value={localPass} onChange={e=>setLocalPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Passwort" style={{width:"100%",padding:"9px 10px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans}}/>
+              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:4,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em"}}>Passwort</label>
+              <input type="password" value={localPass} onChange={e=>setLocalPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Passwort eingeben" style={{width:"100%",padding:"10px 11px",border:`1px solid ${C.mittelgrau}`,borderRadius:5,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans,outline:"none"}}/>
             </div>
-            {localError&&<div style={{padding:"8px 12px",background:"#fce4e4",border:"1px solid #f5c6c6",borderRadius:4,color:"#c62828",fontSize:12,marginBottom:12}}>{localError}</div>}
-            <button onClick={doLocalLogin} disabled={logging} style={{width:"100%",padding:"12px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:14,fontWeight:700,cursor:logging?"not-allowed":"pointer",fontFamily:FONT.sans,opacity:logging?0.7:1}}>{logging?"Anmelden...":"Anmelden"}</button>
-          </div>
-        )}
+            {localError&&<div style={{padding:"8px 12px",background:"#fce4e4",border:"1px solid #f5c6c6",borderRadius:5,color:"#c62828",fontSize:12,marginBottom:14}}>{localError}</div>}
+            <button onClick={doLocalLogin} disabled={logging} style={{width:"100%",padding:"12px 20px",background:logging?"#aaa":C.rot,border:"none",borderRadius:5,color:"#fff",fontSize:14,fontWeight:700,cursor:logging?"not-allowed":"pointer",fontFamily:FONT.sans,letterSpacing:"0.02em",transition:"background .2s"}}>{logging?"Anmelden …":"Anmelden"}</button>
+          </>)}
 
-        {/* OIDC Login */}
-        {!isLocal&&(
-          <div style={{background:C.weiss,borderRadius:8,border:`1px solid ${C.mittelgrau}40`,borderTop:`3px solid ${C.rot}`,padding:"18px 22px",boxShadow:"0 1px 4px #0001"}}>
-            <button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><BRKLogo size={22}/>{appInfo.oidc_label||"Anmelden"}</button>
-            <p style={{textAlign:"center",fontSize:11,color:C.dunkelgrau,margin:"8px 0 0"}}>Single Sign-On über OIDC / Keycloak</p>
-          </div>
-        )}
+          {/* OIDC Login */}
+          {!isLocal&&(<>
+            <button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:5,color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:"0.02em"}}>{appInfo.oidc_label||"Anmelden"}</button>
+            <p style={{textAlign:"center",fontSize:11,color:C.bgrau,margin:"10px 0 0"}}>Single Sign-On über OIDC / Keycloak</p>
+          </>)}
+        </div>
+
+        <div style={{textAlign:"center",marginTop:18,fontSize:10,color:C.bgrau,letterSpacing:"0.03em"}}>SanWD v8 · Bayerisches Rotes Kreuz</div>
       </div>
     </div>
   );
