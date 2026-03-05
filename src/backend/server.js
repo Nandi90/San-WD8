@@ -297,6 +297,21 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", version: "6.0.0", timestamp: new Date().toISOString() });
 });
 
+// Öffentlicher Endpunkt – kein Auth nötig – für Login-Seite
+app.get("/api/public/appinfo", (req, res) => {
+  try {
+    const stamm = db.getDb().prepare("SELECT kv_name, logo FROM stammdaten LIMIT 1").get() || {};
+    const oidcLabel = db.getConfig("oidc_login_label", "Mit OIDC anmelden");
+    res.json({
+      kv_name: stamm.kv_name || "",
+      oidc_label: oidcLabel,
+      has_logo: !!stamm.logo
+    });
+  } catch(e) {
+    res.json({ kv_name: "", oidc_label: "Anmelden", has_logo: false });
+  }
+});
+
 // ── Auth Routes (kein Auth nötig) ────────────────────────────────
 
 // === Public Anfrage-Formular (kein Auth) ===
@@ -1029,6 +1044,13 @@ app.get("/api/nextcloud/status", requireAuth, (req, res) => {
 // ═══════════════════════════════════════════════════════════════════
 // App Config (Admin)
 // ═══════════════════════════════════════════════════════════════════
+app.put("/api/config/oidc-label", requireAuth, (req, res) => {
+  const { label } = req.body;
+  if (typeof label !== "string") return res.status(400).json({ error: "label erforderlich" });
+  db.setConfig("oidc_login_label", label.trim() || "Anmelden");
+  res.json({ ok: true });
+});
+
 app.get("/api/config/nextcloud", requireAuth, (req, res) => {
   if (req.session.user.rolle !== "admin") return res.status(403).json({ error: "Nur Admin" });
   const { getAllConfig } = require("./db");

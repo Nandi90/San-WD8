@@ -737,6 +737,10 @@ function StatistikDashboard({user,year:appYear,toast,bereitschaften=[]}){
 
 function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln,klauselnEdit,setKlauselnEdit,klauselnSaving,saveKlauseln,bereitschaft,reloadStammdaten,bereitschaften=[]}){
   const [sub,setSub]=useState("org");
+  const [oidcLabel,setOidcLabel]=useState("");
+  const [oidcLabelSaving,setOidcLabelSaving]=useState(false);
+  useEffect(()=>{fetch("/api/public/appinfo").then(r=>r.json()).then(d=>setOidcLabel(d.oidc_label||"Mit OIDC anmelden")).catch(()=>{});},[]);
+  const saveOidcLabel=async()=>{setOidcLabelSaving(true);try{await fetch("/api/config/oidc-label",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({label:oidcLabel})});toast("Login-Beschriftung gespeichert","success");}catch(e){toast("Fehler: "+e.message,"error");}setOidcLabelSaving(false);};
   const subs=[{id:"org",label:"Organisation",icon:"🏢"},{id:"bereitschaften",label:"Bereitschaften",icon:"🏥"},{id:"kosten",label:"Kostensätze",icon:"💰"},{id:"klauseln",label:"Textvorlagen",icon:"📝"},{id:"nextcloud",label:"Nextcloud",icon:"☁️"},{id:"email",label:"E-Mail",icon:"✉️"}];
   return(<div>
     <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap"}}>
@@ -757,6 +761,11 @@ function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln
             <div style={{fontSize:10,color:C.bgrau,marginTop:4}}>Empfohlen: PNG/JPG, ca. 300×150px</div>
           </div>
         </div>
+      </Card>
+      <Card title="🔐 Anmeldung" accent={C.dunkelblau} sub="Login-Seite konfigurieren">
+        <Inp label="Anmelde-Button Beschriftung" value={oidcLabel} onChange={setOidcLabel} placeholder="Mit OIDC anmelden"/>
+        <div style={{fontSize:11,color:C.bgrau,marginBottom:10}}>Wird auf der Login-Seite als Button-Text angezeigt. Z.B. „Mit BRK.id anmelden" oder „Mit Keycloak anmelden".</div>
+        <Btn onClick={saveOidcLabel} variant="primary" disabled={oidcLabelSaving} small>{oidcLabelSaving?"Speichern...":"Speichern"}</Btn>
       </Card>
       <div style={{padding:"14px 16px",background:"#e8eaf6",borderRadius:8,border:"1px solid #c5cae9",marginTop:8}}>
         <div style={{fontSize:12,color:"#3949ab"}}>🏥 <strong>Bereitschaftsdaten</strong> (Leiter, E-Mail, Telefon) werden jetzt im Tab <button onClick={()=>setSub("bereitschaften")} style={{background:"none",border:"none",color:C.mittelblau,fontWeight:700,cursor:"pointer",textDecoration:"underline",fontSize:12,fontFamily:FONT.sans,padding:0}}>Bereitschaften</button> verwaltet.</div>
@@ -2997,6 +3006,8 @@ export default function App(){
   const [showKompModal,setShowKompModal]=useState(false);
   const [stammdatenLoaded,setStammdatenLoaded]=useState(false);
   const [kvCoords,setKvCoords]=useState(null);
+  const [appInfo,setAppInfo]=useState({kv_name:"",oidc_label:"Anmelden",has_logo:false});
+  useEffect(()=>{fetch("/api/public/appinfo").then(r=>r.json()).then(d=>setAppInfo(d)).catch(()=>{});},[]);
   const printRef=useRef(null);
 
   const [year,setYear]=useState(new Date().getFullYear());
@@ -3137,8 +3148,8 @@ export default function App(){
     <div style={{minHeight:"100vh",background:C.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT.sans}}>
       <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
       <div style={{width:440,padding:40}}>
-        <div style={{textAlign:"center",marginBottom:32}}><BRKLogo size={80} full/><h1 style={{margin:"12px 0 4px",fontSize:20,fontWeight:800,color:C.schwarz}}>SanWD</h1><p style={{margin:0,fontSize:13,color:C.dunkelgrau}}>Sanitätswachdienst</p></div>
-        <Card accent={C.rot}><button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><BRKLogo size={22}/>Mit BRK.id anmelden</button><p style={{textAlign:"center",fontSize:11,color:C.dunkelgrau,margin:"8px 0 0"}}>Single Sign-On über Keycloak / BRK.id</p></Card>
+        <div style={{textAlign:"center",marginBottom:32}}><BRKLogo size={80} full/><h1 style={{margin:"12px 0 4px",fontSize:20,fontWeight:800,color:C.schwarz}}>{appInfo.kv_name||"SanWD"}</h1><p style={{margin:0,fontSize:13,color:C.dunkelgrau}}>Sanitätswachdienst · Kalkulation und Abrechnung</p></div>
+        <Card accent={C.rot}><button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><BRKLogo size={22}/>{appInfo.oidc_label||"Anmelden"}</button><p style={{textAlign:"center",fontSize:11,color:C.dunkelgrau,margin:"8px 0 0"}}>Single Sign-On über OIDC / Keycloak</p></Card>
         
         
       </div>
