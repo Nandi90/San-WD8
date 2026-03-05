@@ -252,6 +252,11 @@ router.get("/status", (req, res) => {
 });
 
 
+// ── Dev Login GET → Redirect zu /auth/login ─────────────────────
+router.get("/dev-login", (req, res) => {
+  res.redirect("/auth/login");
+});
+
 // ── Dev Login POST (nur bei DEV_AUTH=true) ───────────────────────
 router.post("/dev-login", (req, res) => {
   if (process.env.DEV_AUTH !== "true") return res.status(403).send("Nicht verfügbar");
