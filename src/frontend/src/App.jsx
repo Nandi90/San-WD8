@@ -2779,7 +2779,7 @@ function SetupWizard({onComplete,user}){
         {/* BRK.id Info-Box in Hellblau (Sekundärfarbe) */}
         <div style={{background:CI.hellblau,border:`1px solid #C0CDD8`,borderLeft:`3px solid ${CI.dunkelblau}`,borderRadius:2,padding:"14px 16px"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><img src={BRKID_LOGO} alt="BRK.id" style={{height:20,width:"auto"}}/><span style={{fontSize:11,fontWeight:700,color:CI.dunkelblau,textTransform:"uppercase",letterSpacing:"0.08em"}}>Integration (optional)</span></div>
-          <div style={{fontSize:12,color:CI.text,marginBottom:10,lineHeight:1.5}}>Die KV-Nummer (<code style={{background:"rgba(0,45,85,0.08)",padding:"1px 4px",borderRadius:2}}>kvid</code>) aus BRK.id ermöglicht die automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil – z.B. <strong>701</strong> für KV Neuburg-Schrobenhausen.</div>
+          <div style={{fontSize:12,color:CI.text,marginBottom:10,lineHeight:1.5}}>Die KV-Nummer (<code style={{background:"rgba(0,45,85,0.08)",padding:"1px 4px",borderRadius:2}}>kvid</code>) aus BRK.id ermöglicht die automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil – z.B. <strong>000</strong> für Landesverband Bayern oder <strong>701</strong> für KV Neuburg-Schrobenhausen.</div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><Pikt icon={ICONS.klemmbrett.B} size={18}/><label style={{...sL,color:CI.dunkelblau,marginBottom:0}}>KV-Nummer (kvid)</label></div>
           <input value={org.kvid} onChange={e=>setOrg(p=>({...p,kvid:e.target.value.replace(/\D/g,"")}))} placeholder="z.B. 000 (LV) oder 701 (KV)" style={{...sI,maxWidth:140,fontFamily:"monospace"}} maxLength={5}/>
         </div>
