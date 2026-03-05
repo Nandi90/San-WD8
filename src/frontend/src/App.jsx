@@ -2733,7 +2733,8 @@ function SetupWizard({onComplete,user}){
         {/* Titel auf Rot */}
         <div style={{background:CI.rot,flex:1,padding:"0 24px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>Ersteinrichtung</div>
-          <div style={{fontSize:20,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanWD-Auftragsmanagement</div>
+          <div style={{fontSize:20,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanEvent</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:3,letterSpacing:"0.03em"}}>Sanitätswachdienst · Kalkulation und Abrechnung</div>
         </div>
       </div>
 
