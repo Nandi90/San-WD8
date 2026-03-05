@@ -2750,10 +2750,10 @@ function SetupWizard({onComplete,user}){
           const done=step>s.n, active=step===s.n;
           return(
           <div key={s.n} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 4px 8px",borderBottom:active?`3px solid ${CI.rot}`:`3px solid transparent`,background:active?CI.rotLight:done?"#FAFAF9":CI.weiss,gap:4,borderRight:i<3?`1px solid ${CI.linie}`:"none"}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:done?CI.rot:active?CI.rot:CI.linie,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div style={{width:40,height:40,borderRadius:"50%",background:done?CI.rot:active?CI.rot:CI.linie,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {done
-                ? <span style={{color:CI.weiss,fontSize:12,fontWeight:700}}>✓</span>
-                : <Pikt icon={[ICONS.user.W,ICONS.bereit.W,ICONS.kosten.W,ICONS.abschluss.W][s.n-1]} size={16}/>
+                ? <span style={{color:CI.weiss,fontSize:16,fontWeight:700}}>✓</span>
+                : <Pikt icon={[ICONS.user.W,ICONS.bereit.W,ICONS.kosten.W,ICONS.abschluss.W][s.n-1]} size={24}/>
               }
             </div>
             <span style={{fontSize:10,fontWeight:active?700:400,color:active?CI.rot:done?CI.grau:CI.linie,textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.l}</span>
