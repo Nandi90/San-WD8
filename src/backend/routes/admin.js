@@ -71,4 +71,47 @@ router.get("/stats", (req, res) => {
   });
 });
 
+// ── BRK.id Gruppen-Verwaltung ─────────────────────────────────────
+
+// Alle BRK.id Funktionsgruppen auflisten
+router.get("/brk-id-groups", (req, res) => {
+  const db = getDb();
+  const groups = db.prepare("SELECT * FROM brk_id_groups ORDER BY rolle DESC, group_code ASC").all();
+  res.json(groups);
+});
+
+// Einzelne Gruppe anlegen oder aktualisieren
+router.put("/brk-id-groups/:code", (req, res) => {
+  const db = getDb();
+  const code = decodeURIComponent(req.params.code);
+  const { type, rolle, bereitschaft_code, description, active } = req.body;
+  const validRollen = ["admin", "kbl", "bl", "se", "helfer"];
+  if (!validRollen.includes(rolle)) return res.status(400).json({ error: "Ungültige Rolle" });
+  db.prepare(`
+    INSERT INTO brk_id_groups (group_code, type, rolle, bereitschaft_code, description, active)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(group_code) DO UPDATE SET
+      type=excluded.type, rolle=excluded.rolle,
+      bereitschaft_code=excluded.bereitschaft_code,
+      description=excluded.description, active=excluded.active
+  `).run(code, type || "rolle", rolle, bereitschaft_code || null, description || "", active ?? 1);
+  res.json({ ok: true });
+});
+
+// Gruppe löschen
+router.delete("/brk-id-groups/:code", (req, res) => {
+  const db = getDb();
+  db.prepare("DELETE FROM brk_id_groups WHERE group_code=?").run(decodeURIComponent(req.params.code));
+  res.json({ ok: true });
+});
+
+// brk_id_group auf einer Bereitschaft setzen
+router.put("/bereitschaften/:code/brk-id-group", (req, res) => {
+  const db = getDb();
+  const { brk_id_group } = req.body;
+  db.prepare("UPDATE bereitschaften SET brk_id_group=? WHERE code=?")
+    .run(brk_id_group || "", req.params.code);
+  res.json({ ok: true });
+});
+
 module.exports = router;

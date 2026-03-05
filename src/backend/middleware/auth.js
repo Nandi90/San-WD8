@@ -30,36 +30,44 @@ async function getClient() {
   return oidcClient;
 }
 
-// ── Rolle aus Keycloak Claims bestimmen ──────────────────────────
-// BRK.id MemberShip-IDs → Bereitschaft-Code + Rolle
-const GROUP_MAP = {
-  "GRP_Kreisbereitschaftsleitung": { code: "KBL",   rolle: "admin" },
-  "GRP_Bereitschaft_ND":           { code: "BND",   rolle: "bl"    },
-  "GRP_Bereitschaft_SOB":          { code: "BSOB",  rolle: "bl"    },
-  "GRP_Bereitschaft_BGH":          { code: "BBGH",  rolle: "bl"    },
-  "GRP_Bereitschaft_KaHu":         { code: "BKAHU", rolle: "bl"    },
-  "GRP_Bereitschaft_KarKo":        { code: "BKK",   rolle: "bl"    },
-  "GRP_Bereitschaft_WEIlG":        { code: "BWEIG", rolle: "bl"    },
-};
+// ── Rolle + Bereitschaft aus BRK.id Claims bestimmen (DB-gesteuert) ──
+// Gruppen kommen als Array von Strings aus dem OIDC-Token, z.B.:
+//   ["BER - KBL", "BER - FDL-Sanität"]
+// Die Mappings liegen in der DB (brk_id_groups + bereitschaften.brk_id_group)
 
-function extractRole(userinfo) {
-  const groups = userinfo.groups || [];
-  // KBL hat immer Vorrang → admin
-  if (groups.includes("GRP_Kreisbereitschaftsleitung")) return "admin";
-  for (const g of groups) {
-    if (GROUP_MAP[g]) return GROUP_MAP[g].rolle;
+function resolveUserFromGroups(groups = []) {
+  const db = getDb();
+
+  let rolle = "helfer";
+  let bereitschaftCode = null;
+
+  // Priorität der Rollen (höchste zuerst)
+  const rolePriority = { admin: 5, kbl: 4, bl: 3, se: 2, helfer: 1 };
+
+  for (const grp of groups) {
+    // 1. Funktionsgruppe? → Rolle bestimmen
+    const funcGroup = db.prepare(
+      "SELECT rolle FROM brk_id_groups WHERE group_code=? AND active=1"
+    ).get(grp);
+    if (funcGroup) {
+      if ((rolePriority[funcGroup.rolle] || 0) > (rolePriority[rolle] || 0)) {
+        rolle = funcGroup.rolle;
+      }
+    }
+
+    // 2. Bereitschafts-Gruppe? → BC aus bereitschaften.brk_id_group
+    if (!bereitschaftCode) {
+      const bc = db.prepare(
+        "SELECT code FROM bereitschaften WHERE brk_id_group=? LIMIT 1"
+      ).get(grp);
+      if (bc) bereitschaftCode = bc.code;
+    }
   }
-  return "helfer";
-}
 
-function extractBereitschaft(userinfo) {
-  const groups = userinfo.groups || [];
-  // KBL → eigene Bereitschaft behalten aber Rolle=admin
-  // Spezifische Bereitschaft als Code, auch wenn Admin
-  const specific = groups.find(g => GROUP_MAP[g] && GROUP_MAP[g].code !== "KBL");
-  if (specific) return GROUP_MAP[specific].code;
-  if (groups.includes("GRP_Kreisbereitschaftsleitung")) return "KBL";
-  return null;
+  // Admin ohne spezifische BC → ADMIN-Sentinel
+  if (!bereitschaftCode && rolle === "admin") bereitschaftCode = "ADMIN";
+
+  return { rolle, bereitschaftCode };
 }
 
 
@@ -183,8 +191,14 @@ router.get("/callback", async (req, res) => {
       allKeys: Object.keys(userinfo)
     }, null, 2));
 
-    const rolle = extractRole(userinfo);
-    let bereitschaftCode = extractBereitschaft(userinfo);
+    // Gruppen aus verschiedenen Claim-Feldern zusammenführen (BRK.id Kompatibilität)
+    const rawGroups = [
+      ...(userinfo.groups || []),
+      ...(userinfo.memberOf || []),
+      ...(userinfo.membership || []),
+    ];
+    const { rolle, bereitschaftCode: rawBC } = resolveUserFromGroups(rawGroups);
+    let bereitschaftCode = rawBC;
 
     if (!bereitschaftCode || bereitschaftCode === "ADMIN") {
       if (rolle === "admin") {
