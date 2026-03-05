@@ -2769,17 +2769,17 @@ function SetupWizard({onComplete,user}){
           <div style={{fontSize:12,color:CI.grau,marginTop:2}}>Grunddaten Ihres Kreisverbands</div></div>
         </div>
         <label style={sL}>Name des Kreisverbands *</label>
-        <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Neuburg-Schrobenhausen" style={{...sI,marginBottom:16}}/>
+        <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Musterstadt" style={{...sI,marginBottom:16}}/>
         <label style={sL}>Kreisgeschäftsführer / Leitung</label>
         <input value={org.kgf} onChange={e=>setOrg(p=>({...p,kgf:e.target.value}))} placeholder="z.B. Max Mustermann" style={{...sI,marginBottom:16}}/>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
           <div><label style={sL}>Adresse</label><input value={org.kv_adresse} onChange={e=>setOrg(p=>({...p,kv_adresse:e.target.value}))} placeholder="z.B. Musterstraße 1" style={sI}/></div>
-          <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 86633 Neuburg" style={sI}/></div>
+          <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 12345 Musterstadt" style={sI}/></div>
         </div>
         {/* BRK.id Info-Box in Hellblau (Sekundärfarbe) */}
         <div style={{background:CI.hellblau,border:`1px solid #C0CDD8`,borderLeft:`3px solid ${CI.dunkelblau}`,borderRadius:2,padding:"14px 16px"}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}><img src={BRKID_LOGO} alt="BRK.id" style={{height:20,width:"auto"}}/><span style={{fontSize:11,fontWeight:700,color:CI.dunkelblau,textTransform:"uppercase",letterSpacing:"0.08em"}}>Integration (optional)</span></div>
-          <div style={{fontSize:12,color:CI.text,marginBottom:10,lineHeight:1.5}}>Die KV-Nummer (<code style={{background:"rgba(0,45,85,0.08)",padding:"1px 4px",borderRadius:2}}>kvid</code>) aus BRK.id ermöglicht die automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil – z.B. <strong>000</strong> für Landesverband Bayern oder <strong>701</strong> für KV Neuburg-Schrobenhausen.</div>
+          <div style={{fontSize:12,color:CI.text,marginBottom:10,lineHeight:1.5}}>Die KV-Nummer (<code style={{background:"rgba(0,45,85,0.08)",padding:"1px 4px",borderRadius:2}}>kvid</code>) aus BRK.id ermöglicht die automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil – z.B. <strong>000</strong> für Landesverband Bayern oder <strong>701</strong> für einen Kreisverband.</div>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><Pikt icon={ICONS.klemmbrett.B} size={18}/><label style={{...sL,color:CI.dunkelblau,marginBottom:0}}>KV-Nummer (kvid)</label></div>
           <input value={org.kvid} onChange={e=>setOrg(p=>({...p,kvid:e.target.value.replace(/\D/g,"")}))} placeholder="z.B. 000" style={{...sI,maxWidth:140,fontFamily:"monospace"}} maxLength={5}/>
         </div>
