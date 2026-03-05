@@ -188,17 +188,20 @@ router.get("/callback", async (req, res) => {
 
     if (!bereitschaftCode || bereitschaftCode === "ADMIN") {
       if (rolle === "admin") {
-        bereitschaftCode = "KBL";
+        bereitschaftCode = "ADMIN";
       } else {
         return res.status(403).send("Keine Bereitschaft zugewiesen. Bitte beim Admin melden.");
       }
     }
 
-    // Prüfe ob Bereitschaft existiert
+    // Prüfe ob Bereitschaft existiert (bei Setup-Modus erlauben)
     const db = getDb();
-    const bc = db.prepare("SELECT code FROM bereitschaften WHERE code = ?").get(bereitschaftCode);
-    if (!bc) {
-      return res.status(403).send(`Bereitschaft "${bereitschaftCode}" nicht in der Datenbank. Admin kontaktieren.`);
+    const bcCount = db.prepare("SELECT COUNT(*) as c FROM bereitschaften").get().c;
+    if (bcCount > 0) {
+      const bc = db.prepare("SELECT code FROM bereitschaften WHERE code = ?").get(bereitschaftCode);
+      if (!bc && bereitschaftCode !== "ADMIN" && bereitschaftCode !== "SETUP") {
+        return res.status(403).send(`Bereitschaft "${bereitschaftCode}" nicht in der Datenbank. Admin kontaktieren.`);
+      }
     }
 
     req.session.user = {
@@ -258,7 +261,7 @@ router.post("/dev-login", (req, res) => {
     name: name || "Dev User",
     email: email || "dev@sanwd.local",
     rolle: rolle || "admin",
-    bereitschaftCode: bereitschaftCode || "KBL",
+    bereitschaftCode: bereitschaftCode || "",
   };
   syncUser(req.session.user);
   audit(req.session.user, "login", "user", req.session.user.sub, "Dev-Login (" + rolle + ")");
