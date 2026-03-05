@@ -2724,18 +2724,13 @@ function SetupWizard({onComplete,user}){
   <div style={{minHeight:"100vh",background:CI.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"system-ui,-apple-system,sans-serif"}}>
     <div style={{background:CI.weiss,borderRadius:2,maxWidth:720,width:"100%",boxShadow:"0 2px 16px rgba(26,26,24,0.10)",overflow:"hidden"}}>
 
-      {/* ── Header: Logo-Zone (weiß) + Titel-Zone (rot) ── */}
-      <div style={{display:"flex",alignItems:"stretch"}}>
-        {/* Titel auf Rot – Logo schwebt darüber */}
-        <div style={{background:CI.rot,flex:1,padding:"0 24px 0 20px",display:"flex",alignItems:"center",gap:20}}>
-          <div style={{background:CI.weiss,borderRadius:10,padding:"10px 14px",boxShadow:"0 4px 16px rgba(0,0,0,0.18)",flexShrink:0,display:"flex",alignItems:"center"}}>
-            <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:58,width:"auto"}}/>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4}}>Ersteinrichtung</div>
-            <div style={{fontSize:20,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanEvent</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",marginTop:3,letterSpacing:"0.03em"}}>Sanitätswachdienst · Kalkulation und Abrechnung</div>
-          </div>
+      {/* ── Header: Volles Rot, Logo direkt drauf (BRK-Website-Style) ── */}
+      <div style={{background:CI.rot,padding:"12px 24px",display:"flex",alignItems:"center",gap:20,minHeight:72}}>
+        <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:60,width:"auto",mixBlendMode:"multiply",flexShrink:0}}/>
+        <div style={{width:1,background:"rgba(255,255,255,0.3)",alignSelf:"stretch",margin:"4px 0"}}/>
+        <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:22,fontWeight:700,color:CI.weiss,fontFamily:"Merriweather,Georgia,serif",lineHeight:1.1}}>SanEvent</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",marginTop:4,letterSpacing:"0.03em"}}>Sanitätswachdienst · Kalkulation und Abrechnung</div>
         </div>
       </div>
 
