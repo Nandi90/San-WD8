@@ -46,6 +46,29 @@ const API = {
     return this.json("/api/stammdaten/bereitschaften");
   },
 
+  // ── Setup Wizard ──────────────────────────────────────────────
+  async getSetupStatus() {
+    return this.json("/api/stammdaten/setup/status");
+  },
+  async completeSetup() {
+    return this.json("/api/stammdaten/setup/complete", { method: "POST" });
+  },
+  async saveOrganisation(data) {
+    return this.json("/api/stammdaten/setup/organisation", { method: "PUT", body: JSON.stringify(data) });
+  },
+  async createBereitschaft(data) {
+    return this.json("/api/stammdaten/bereitschaften", { method: "POST", body: JSON.stringify(data) });
+  },
+  async deleteBereitschaft(code) {
+    return this.json("/api/stammdaten/bereitschaften/" + code, { method: "DELETE" });
+  },
+  async saveSetupKostensaetze(code, data) {
+    return this.json("/api/stammdaten/setup/kostensaetze/" + code, { method: "PUT", body: JSON.stringify(data) });
+  },
+  async applyKostensaetzeAll(data) {
+    return this.json("/api/stammdaten/setup/kostensaetze-apply-all", { method: "POST", body: JSON.stringify(data) });
+  },
+
   async getStammdaten() {
     return this.json("/api/stammdaten/me");
   },

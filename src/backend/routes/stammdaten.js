@@ -154,3 +154,93 @@ router.post("/counter/:year/increment", requireBL, (req, res) => {
 });
 
 module.exports = router;
+
+// ═══════════════════════════════════════════════════════════════════
+// Setup Wizard (v8)
+// ═══════════════════════════════════════════════════════════════════
+
+// Setup-Status (kein requireAdmin – alle dürfen prüfen)
+router.get("/setup/status", (req, res) => {
+  const { getConfig } = require("../db");
+  const complete = getConfig("setup_complete", "false") === "true";
+  const hasBCs = getDb().prepare("SELECT COUNT(*) as c FROM bereitschaften").get().c > 0;
+  res.json({ setupComplete: complete, hasBereitschaften: hasBCs });
+});
+
+// Setup abschließen
+router.post("/setup/complete", requireAdmin, (req, res) => {
+  const { setConfig } = require("../db");
+  setConfig("setup_complete", "true");
+  audit(req.session.user, "setup", "system", "setup_complete", "Ersteinrichtung abgeschlossen");
+  res.json({ success: true });
+});
+
+// Organisation speichern (für Wizard – aktualisiert ALLE Bereitschaften gleichzeitig)
+router.put("/setup/organisation", requireAdmin, (req, res) => {
+  const { kv_name, kgf, kv_adresse, kv_plz_ort } = req.body;
+  // Organisationsdaten auf alle Bereitschaften schreiben
+  getDb().prepare("UPDATE bereitschaften SET kv_name=?, kgf=?, kv_adresse=?, kv_plz_ort=?, updated_at=datetime('now')").run(
+    kv_name || "", kgf || "", kv_adresse || "", kv_plz_ort || ""
+  );
+  audit(req.session.user, "setup", "organisation", "all", JSON.stringify({ kv_name }));
+  res.json({ success: true });
+});
+
+// ── Bereitschaft anlegen (CRUD) ──────────────────────────────────
+router.post("/bereitschaften", requireAdmin, (req, res) => {
+  const { code, name, short } = req.body;
+  if (!code || !name) return res.status(400).json({ error: "Code und Name erforderlich" });
+  
+  // Prüfe ob Code bereits existiert
+  const existing = getDb().prepare("SELECT code FROM bereitschaften WHERE code=?").get(code);
+  if (existing) return res.status(409).json({ error: `Bereitschaft ${code} existiert bereits` });
+  
+  getDb().prepare("INSERT INTO bereitschaften (code, name, short) VALUES (?,?,?)").run(code, name, short || code);
+  getDb().prepare("INSERT OR IGNORE INTO kostensaetze (bereitschaft_code) VALUES (?)").run(code);
+  audit(req.session.user, "create", "bereitschaft", code, name);
+  res.json({ success: true, code });
+});
+
+// ── Bereitschaft löschen ─────────────────────────────────────────
+router.delete("/bereitschaften/:code", requireAdmin, (req, res) => {
+  const { code } = req.params;
+  // Prüfe ob Vorgänge existieren
+  const vorgaenge = getDb().prepare("SELECT COUNT(*) as c FROM vorgaenge WHERE bereitschaft_code=?").get(code);
+  if (vorgaenge.c > 0) return res.status(409).json({ error: `${vorgaenge.c} Vorgänge zugewiesen – Bereitschaft kann nicht gelöscht werden` });
+  
+  getDb().prepare("DELETE FROM kostensaetze WHERE bereitschaft_code=?").run(code);
+  getDb().prepare("DELETE FROM bereitschaften WHERE code=?").run(code);
+  audit(req.session.user, "delete", "bereitschaft", code);
+  res.json({ success: true });
+});
+
+// ── Kostensätze für Setup speichern (beliebiger BC-Code) ─────────
+router.put("/setup/kostensaetze/:code", requireAdmin, (req, res) => {
+  const { code } = req.params;
+  const k = req.body;
+  getDb().prepare(`UPDATE kostensaetze SET 
+    helfer=?, ktw=?, rtw=?, gktw=?, einsatzleiter=?, einsatzleiter_kfz=?,
+    seg_lkw=?, mtw=?, zelt=?, km_ktw=?, km_rtw=?, km_gktw=?,
+    km_el_kfz=?, km_seg_lkw=?, km_mtw=?, verpflegung=?, updated_at=datetime('now')
+    WHERE bereitschaft_code=?`).run(
+    k.helfer||0, k.ktw||0, k.rtw||0, k.gktw||0, k.einsatzleiter||0, k.einsatzleiter_kfz||0,
+    k.seg_lkw||0, k.mtw||0, k.zelt||0, k.km_ktw||0, k.km_rtw||0, k.km_gktw||0,
+    k.km_el_kfz||0, k.km_seg_lkw||0, k.km_mtw||0, k.verpflegung||0, code
+  );
+  res.json({ success: true });
+});
+
+// Kostensätze auf alle BCs kopieren
+router.post("/setup/kostensaetze-apply-all", requireAdmin, (req, res) => {
+  const k = req.body;
+  getDb().prepare(`UPDATE kostensaetze SET 
+    helfer=?, ktw=?, rtw=?, gktw=?, einsatzleiter=?, einsatzleiter_kfz=?,
+    seg_lkw=?, mtw=?, zelt=?, km_ktw=?, km_rtw=?, km_gktw=?,
+    km_el_kfz=?, km_seg_lkw=?, km_mtw=?, verpflegung=?, updated_at=datetime('now')`).run(
+    k.helfer||0, k.ktw||0, k.rtw||0, k.gktw||0, k.einsatzleiter||0, k.einsatzleiter_kfz||0,
+    k.seg_lkw||0, k.mtw||0, k.zelt||0, k.km_ktw||0, k.km_rtw||0, k.km_gktw||0,
+    k.km_el_kfz||0, k.km_seg_lkw||0, k.km_mtw||0, k.verpflegung||0
+  );
+  audit(req.session.user, "setup", "kostensaetze", "all", "Standardkostensätze angewendet");
+  res.json({ success: true });
+});

@@ -2646,13 +2646,123 @@ const RELEASE_V72={v:"v7.2",d:"03.03.2026",c:[
   "🔄 BRK.id Callback: Automatischer Re-Login bei verlorener Session statt Fehlermeldung",
 ]};
 
+// ═══════════════════════════════════════════════════════════════════════════
+// SETUP WIZARD (v8 – Ersteinrichtung)
+// ═══════════════════════════════════════════════════════════════════════════
+function SetupWizard({onComplete,user}){
+  const [step,setStep]=useState(1);
+  const [saving,setSaving]=useState(false);
+  const [org,setOrg]=useState({kv_name:"",kgf:"",kv_adresse:"",kv_plz_ort:""});
+  const [bcs,setBcs]=useState([]);
+  const [newBC,setNewBC]=useState({code:"",name:"",short:""});
+  const [rates,setRates]=useState({helfer:14,ktw:125,rtw:155,gktw:105,einsatzleiter:14,einsatzleiter_kfz:155,seg_lkw:125,mtw:50,zelt:60,km_ktw:0.4,km_rtw:0.4,km_gktw:0.4,km_el_kfz:0.6,km_seg_lkw:0.6,km_mtw:0.4,verpflegung:17});
+  const [error,setError]=useState("");
+  const loadBCs=async()=>{try{const r=await API.getBereitschaften();setBcs(r||[]);}catch(e){console.error(e);}};
+  useEffect(()=>{loadBCs();},[]);
+  const saveOrg=async()=>{if(!org.kv_name.trim()){setError("Kreisverband-Name erforderlich");return;}setSaving(true);setError("");try{if(bcs.length>0)await API.saveOrganisation(org);setStep(2);}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const addBC=async()=>{if(!newBC.code.trim()||!newBC.name.trim()){setError("Code und Name erforderlich");return;}setSaving(true);setError("");try{await API.createBereitschaft({code:newBC.code.toUpperCase().trim(),name:newBC.name.trim(),short:newBC.short.trim()||newBC.code.toUpperCase().trim()});setNewBC({code:"",name:"",short:""});await loadBCs();if(org.kv_name)await API.saveOrganisation(org);}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const removeBC=async(code)=>{setSaving(true);setError("");try{await API.deleteBereitschaft(code);await loadBCs();}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const saveRates=async()=>{setSaving(true);setError("");try{await API.applyKostensaetzeAll(rates);setStep(4);}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const finish=async()=>{setSaving(true);setError("");try{if(org.kv_name)await API.saveOrganisation(org);await API.completeSetup();onComplete();}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const sL={fontSize:11,fontWeight:600,color:"#555",marginBottom:3,display:"block"};
+  const sI={width:"100%",padding:"9px 12px",border:"1px solid #ddd",borderRadius:6,fontSize:13,fontFamily:FONT.sans,boxSizing:"border-box"};
+  const steps=[{n:1,l:"Organisation"},{n:2,l:"Bereitschaften"},{n:3,l:"Kostensätze"},{n:4,l:"Abschluss"}];
+  return(<div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f5f7fa 0%,#e4e9f0 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:"#fff",borderRadius:16,maxWidth:680,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.12)",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#1a237e 0%,#283593 100%)",padding:"28px 32px",color:"#fff"}}><div style={{fontSize:22,fontWeight:800}}>SanWD Ersteinrichtung</div><div style={{fontSize:13,opacity:0.8,marginTop:4}}>Konfigurieren Sie Ihre Instanz in wenigen Schritten</div></div>
+      <div style={{display:"flex",padding:"16px 32px",gap:4,borderBottom:"1px solid #f0f0f0"}}>{steps.map(s=><div key={s.n} style={{flex:1,textAlign:"center",padding:"8px 0",borderRadius:6,background:step===s.n?"#1a237e":step>s.n?"#4caf50":"#f5f5f5",color:step>=s.n?"#fff":"#999",fontSize:12,fontWeight:step===s.n?700:400,transition:"all 0.3s"}}>{step>s.n?"✓ ":""}{s.l}</div>)}</div>
+      {error&&<div style={{margin:"12px 32px 0",padding:"10px 14px",background:"#fce4ec",border:"1px solid #f48fb1",borderRadius:6,fontSize:12,color:"#c62828"}}>{error}</div>}
+      {step===1&&<div style={{padding:"24px 32px"}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>🏛️ Organisation</div>
+        <div style={{fontSize:12,color:"#666",marginBottom:20}}>Grunddaten Ihres Kreisverbands / Ihrer Organisation</div>
+        <label style={sL}>Name des Kreisverbands / Organisation *</label>
+        <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Neuburg-Schrobenhausen" style={{...sI,marginBottom:14}}/>
+        <label style={sL}>Kreisgeschäftsführer / Leitung</label>
+        <input value={org.kgf} onChange={e=>setOrg(p=>({...p,kgf:e.target.value}))} placeholder="z.B. Max Mustermann" style={{...sI,marginBottom:14}}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div><label style={sL}>Adresse</label><input value={org.kv_adresse} onChange={e=>setOrg(p=>({...p,kv_adresse:e.target.value}))} placeholder="z.B. Musterstraße 1" style={sI}/></div>
+          <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 12345 Musterstadt" style={sI}/></div>
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:24}}>
+          <button onClick={saveOrg} disabled={saving||!org.kv_name.trim()} style={{padding:"10px 28px",background:org.kv_name.trim()?"#1a237e":"#ccc",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:org.kv_name.trim()?"pointer":"default",fontFamily:FONT.sans}}>{saving?"Speichert...":"Weiter →"}</button>
+        </div>
+      </div>}
+      {step===2&&<div style={{padding:"24px 32px"}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>🏥 Bereitschaften</div>
+        <div style={{fontSize:12,color:"#666",marginBottom:16}}>Legen Sie die Bereitschaften Ihres Kreisverbands an. Mindestens eine wird benötigt.</div>
+        {bcs.length>0&&<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,marginBottom:16}}>
+          <thead><tr style={{borderBottom:"2px solid #e0e0e0"}}><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Code</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Name</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Kürzel</th><th style={{padding:"6px 4px",width:40}}></th></tr></thead>
+          <tbody>{bcs.map(b=><tr key={b.code} style={{borderBottom:"1px solid #f0f0f0"}}><td style={{padding:"8px",fontWeight:600,fontFamily:"monospace"}}>{b.code}</td><td style={{padding:"8px"}}>{b.name}</td><td style={{padding:"8px"}}>{b.short}</td><td style={{padding:"8px 4px"}}><button onClick={()=>removeBC(b.code)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"#e53935"}} title="Entfernen">🗑️</button></td></tr>)}</tbody>
+        </table>}
+        <div style={{background:"#f5f7fa",padding:"14px 16px",borderRadius:8,border:"1px dashed #ccc"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8}}>+ Neue Bereitschaft</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr auto",gap:8,alignItems:"end"}}>
+            <div><label style={{...sL,fontSize:10}}>Code *</label><input value={newBC.code} onChange={e=>setNewBC(p=>({...p,code:e.target.value.toUpperCase()}))} placeholder="BND" style={{...sI,fontFamily:"monospace",textTransform:"uppercase"}}/></div>
+            <div><label style={{...sL,fontSize:10}}>Name *</label><input value={newBC.name} onChange={e=>setNewBC(p=>({...p,name:e.target.value}))} placeholder="Bereitschaft Neuburg" style={sI}/></div>
+            <div><label style={{...sL,fontSize:10}}>Kürzel</label><input value={newBC.short} onChange={e=>setNewBC(p=>({...p,short:e.target.value}))} placeholder="ND" style={sI}/></div>
+            <button onClick={addBC} disabled={saving||!newBC.code.trim()||!newBC.name.trim()} style={{padding:"9px 16px",background:newBC.code.trim()&&newBC.name.trim()?"#2e7d32":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",height:38}}>+ Hinzufügen</button>
+          </div>
+          <div style={{fontSize:10,color:"#888",marginTop:6}}>Code = Eindeutiger Identifier (z.B. BSOB, BND, KBL). Name = Voller Name.</div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
+          <button onClick={()=>setStep(1)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
+          <button onClick={()=>{if(bcs.length===0){setError("Mindestens eine Bereitschaft anlegen");return;}setError("");setStep(3);}} disabled={bcs.length===0} style={{padding:"10px 28px",background:bcs.length>0?"#1a237e":"#ccc",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:bcs.length>0?"pointer":"default",fontFamily:FONT.sans}}>Weiter →</button>
+        </div>
+      </div>}
+      {step===3&&<div style={{padding:"24px 32px"}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>💰 Kostensätze</div>
+        <div style={{fontSize:12,color:"#666",marginBottom:16}}>Standard-Kostensätze für alle Bereitschaften. Später pro BC anpassbar.</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          {[{k:"helfer",l:"Helfer (€/Std)"},{k:"ktw",l:"KTW (€/Tag)"},{k:"rtw",l:"RTW (€/Tag)"},{k:"gktw",l:"GKTW (€/Tag)"},{k:"einsatzleiter",l:"EL (€/Std)"},{k:"einsatzleiter_kfz",l:"EL-Kfz (€/Tag)"},{k:"seg_lkw",l:"SEG-LKW (€/Tag)"},{k:"mtw",l:"MTW (€/Tag)"},{k:"zelt",l:"Zelt (€/Tag)"},{k:"verpflegung",l:"Verpflegung (€/P/8h)"}].map(r=>
+            <div key={r.k}><label style={{...sL,fontSize:10}}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
+          )}
+        </div>
+        <div style={{marginTop:12,fontSize:11,fontWeight:600,color:"#555"}}>Kilometerkosten</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:6}}>
+          {[{k:"km_ktw",l:"KTW (€/km)"},{k:"km_rtw",l:"RTW (€/km)"},{k:"km_gktw",l:"GKTW (€/km)"},{k:"km_el_kfz",l:"EL-Kfz (€/km)"},{k:"km_seg_lkw",l:"SEG-LKW (€/km)"},{k:"km_mtw",l:"MTW (€/km)"}].map(r=>
+            <div key={r.k}><label style={{...sL,fontSize:10}}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
+          )}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
+          <button onClick={()=>setStep(2)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
+          <button onClick={saveRates} disabled={saving} style={{padding:"10px 28px",background:"#1a237e",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans}}>{saving?"Speichert...":"Weiter →"}</button>
+        </div>
+      </div>}
+      {step===4&&<div style={{padding:"24px 32px"}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#2e7d32"}}>✅ Zusammenfassung</div>
+        <div style={{fontSize:12,color:"#666",marginBottom:20}}>Prüfen Sie Ihre Konfiguration und schließen Sie die Einrichtung ab.</div>
+        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>🏛️ Organisation</div>
+          <div style={{fontSize:12,lineHeight:1.8}}><strong>{org.kv_name||"–"}</strong>{org.kgf&&<span> · KGF: {org.kgf}</span>}{org.kv_adresse&&<div style={{color:"#666"}}>{org.kv_adresse}, {org.kv_plz_ort}</div>}</div>
+        </div>
+        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>🏥 {bcs.length} Bereitschaft{bcs.length!==1?"en":""}</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{bcs.map(b=><span key={b.code} style={{background:"#e8eaf6",color:"#1a237e",padding:"4px 10px",borderRadius:12,fontSize:11,fontWeight:600}}>{b.short||b.code} – {b.name}</span>)}</div>
+        </div>
+        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>💰 Kostensätze</div>
+          <div style={{fontSize:11,color:"#555"}}>Helfer: {rates.helfer}€/Std · KTW: {rates.ktw}€ · RTW: {rates.rtw}€ · Verpflegung: {rates.verpflegung}€</div>
+        </div>
+        <div style={{background:"#fff3e0",border:"1px solid #ffcc80",borderRadius:8,padding:"12px 16px",marginBottom:16}}>
+          <div style={{fontSize:12,color:"#e65100"}}>💡 SMTP, Nextcloud, Textvorlagen und weitere Einstellungen finden Sie nach der Einrichtung unter <strong>Einstellungen</strong>.</div>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
+          <button onClick={()=>setStep(3)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
+          <button onClick={finish} disabled={saving} style={{padding:"12px 32px",background:"#2e7d32",color:"#fff",border:"none",borderRadius:8,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,boxShadow:"0 4px 12px rgba(46,125,50,0.3)"}}>{saving?"Wird abgeschlossen...":"🚀 Einrichtung abschließen"}</button>
+        </div>
+      </div>}
+    </div>
+  </div>);
+}
+
 export default function App(){
   const [user,setUser]=useState(null);
   const [authLoading,setAuthLoading]=useState(true);
   const [bereitschaften,setBereitschaften]=useState([]);
+  const [setupComplete,setSetupComplete]=useState(true); // assume true until checked
   const [sessionExpired,setSessionExpired]=useState(false);
   useEffect(()=>{API._onSessionExpired=()=>setSessionExpired(true);return()=>{API._onSessionExpired=null;};},[]);
-  useEffect(()=>{API.getStatus().then(d=>{if(d.authenticated){const bc=d.user.bereitschaftCode;const bIdx=bereitschaften.findIndex(b=>b.code===bc);const u={sub:d.user.sub,name:d.user.name,email:d.user.email,bereitschaftCode:bc,bereitschaftIdx:bIdx>=0?bIdx:0,bereitschaft:(d.user.bereitschaft&&d.user.bereitschaft.name)||bc||"",rolle:d.user.rolle,telefon:"",mobil:"",titel:""};setUser(u);API.getBereitschaften().then(bcs=>{setBereitschaften(bcs||[]);}).catch(()=>{});API.getProfile().then(p=>{if(p)setUser(prev=>({...prev,telefon:p.telefon||prev.telefon,mobil:p.mobil||prev.mobil,titel:p.titel||prev.titel,email:p.email||prev.email,ort:p.ort||prev.ort||'',signatur:p.unterschrift||prev.signatur||''}));}).catch(()=>{});}}).catch(()=>{}).finally(()=>setAuthLoading(false));},[]);
+  useEffect(()=>{API.getStatus().then(d=>{if(d.authenticated){const bc=d.user.bereitschaftCode;const bIdx=bereitschaften.findIndex(b=>b.code===bc);const u={sub:d.user.sub,name:d.user.name,email:d.user.email,bereitschaftCode:bc,bereitschaftIdx:bIdx>=0?bIdx:0,bereitschaft:(d.user.bereitschaft&&d.user.bereitschaft.name)||bc||"",rolle:d.user.rolle,telefon:"",mobil:"",titel:""};setUser(u);API.getBereitschaften().then(bcs=>{setBereitschaften(bcs||[]);}).catch(()=>{});API.getSetupStatus().then(s=>{setSetupComplete(s.setupComplete);}).catch(()=>{});API.getProfile().then(p=>{if(p)setUser(prev=>({...prev,telefon:p.telefon||prev.telefon,mobil:p.mobil||prev.mobil,titel:p.titel||prev.titel,email:p.email||prev.email,ort:p.ort||prev.ort||'',signatur:p.unterschrift||prev.signatur||''}));}).catch(()=>{});}}).catch(()=>{}).finally(()=>setAuthLoading(false));},[]);
   const [tab,setTab]=useState("events");
   const [stammdaten,setStammdaten]=useState(DEFAULT_STAMMDATEN);
   const reloadStammdaten=useCallback(()=>{if(!user)return;API.getStammdaten().then(d=>{if(d){const bIdxS=user?bereitschaften.findIndex(b=>b.code===user.bereitschaftCode):-1;setStammdaten(prev=>({...prev,bereitschaftIdx:bIdxS>=0?bIdxS:prev.bereitschaftIdx,kvName:d.kv_name||prev.kvName,kgf:d.kgf||prev.kgf,kvAdresse:d.kv_adresse||prev.kvAdresse,kvPlzOrt:d.kv_plz_ort||prev.kvPlzOrt,bereitschaftsleiter:d.leiter_name||prev.bereitschaftsleiter,bereitschaftsleiterTitle:d.leiter_title||prev.bereitschaftsleiterTitle,telefon:d.telefon||prev.telefon,fax:d.fax||prev.fax,mobil:d.mobil||prev.mobil,email:d.email||prev.email,funkgruppe:d.funkgruppe||prev.funkgruppe,customLogo:d.logo||null,rates:d.kostensaetze?{helfer:d.kostensaetze.helfer,ktw:d.kostensaetze.ktw,rtw:d.kostensaetze.rtw,gktw:d.kostensaetze.gktw,einsatzleiter:d.kostensaetze.einsatzleiter,aerzte:0,einsatzleiterKfz:d.kostensaetze.einsatzleiter_kfz,mobileSanstation:d.kostensaetze.seg_lkw,segLkw:d.kostensaetze.seg_lkw,mtw:d.kostensaetze.mtw,zelt:d.kostensaetze.zelt,kmKtw:d.kostensaetze.km_ktw,kmRtw:d.kostensaetze.km_rtw,kmGktw:d.kostensaetze.km_gktw,kmElKfz:d.kostensaetze.km_el_kfz,kmSegLkw:d.kostensaetze.km_seg_lkw,kmMtw:d.kostensaetze.km_mtw,verpflegung:d.kostensaetze.verpflegung}:prev.rates}));}setStammdatenLoaded(true);}).catch(e=>{console.warn("Stammdaten laden:",e);setStammdatenLoaded(true);});},[user]);
@@ -2879,6 +2989,9 @@ export default function App(){
       </div>
     </div>
   );
+
+  // SETUP WIZARD (leere Instanz → Ersteinrichtung)
+  if(!setupComplete)return(<SetupWizard user={user} onComplete={()=>{setSetupComplete(true);API.getBereitschaften().then(bcs=>{setBereitschaften(bcs||[]);}).catch(()=>{});reloadStammdaten();}}/>);
 
   // MAIN APP
   return(
