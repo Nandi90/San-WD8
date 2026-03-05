@@ -2667,100 +2667,207 @@ function SetupWizard({onComplete,user}){
   const sL={fontSize:11,fontWeight:600,color:"#555",marginBottom:3,display:"block"};
   const sI={width:"100%",padding:"9px 12px",border:"1px solid #ddd",borderRadius:6,fontSize:13,fontFamily:FONT.sans,boxSizing:"border-box"};
   const steps=[{n:1,l:"Organisation"},{n:2,l:"Bereitschaften"},{n:3,l:"Kostensätze"},{n:4,l:"Abschluss"}];
-  return(<div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f5f7fa 0%,#e4e9f0 100%)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{background:"#fff",borderRadius:16,maxWidth:680,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.12)",overflow:"hidden"}}>
-      <div style={{background:"linear-gradient(135deg,#1a237e 0%,#283593 100%)",padding:"28px 32px",color:"#fff"}}><div style={{fontSize:22,fontWeight:800}}>SanWD Ersteinrichtung</div><div style={{fontSize:13,opacity:0.8,marginTop:4}}>Konfigurieren Sie Ihre Instanz in wenigen Schritten</div></div>
-      <div style={{display:"flex",padding:"16px 32px",gap:4,borderBottom:"1px solid #f0f0f0"}}>{steps.map(s=><div key={s.n} style={{flex:1,textAlign:"center",padding:"8px 0",borderRadius:6,background:step===s.n?"#1a237e":step>s.n?"#4caf50":"#f5f5f5",color:step>=s.n?"#fff":"#999",fontSize:12,fontWeight:step===s.n?700:400,transition:"all 0.3s"}}>{step>s.n?"✓ ":""}{s.l}</div>)}</div>
-      {error&&<div style={{margin:"12px 32px 0",padding:"10px 14px",background:"#fce4ec",border:"1px solid #f48fb1",borderRadius:6,fontSize:12,color:"#c62828"}}>{error}</div>}
-      {step===1&&<div style={{padding:"24px 32px"}}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>🏛️ Organisation</div>
-        <div style={{fontSize:12,color:"#666",marginBottom:20}}>Grunddaten Ihres Kreisverbands / Ihrer Organisation</div>
-        <label style={sL}>Name des Kreisverbands / Organisation *</label>
-        <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Neuburg-Schrobenhausen" style={{...sI,marginBottom:14}}/>
-        <label style={sL}>Kreisgeschäftsführer / Leitung</label>
-        <input value={org.kgf} onChange={e=>setOrg(p=>({...p,kgf:e.target.value}))} placeholder="z.B. Max Mustermann" style={{...sI,marginBottom:14}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
-          <div><label style={sL}>Adresse</label><input value={org.kv_adresse} onChange={e=>setOrg(p=>({...p,kv_adresse:e.target.value}))} placeholder="z.B. Musterstraße 1" style={sI}/></div>
-          <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 12345 Musterstadt" style={sI}/></div>
+  // ── DRK-Bereitschaften CI (Styleguide DRK / Bereitschaften) ──────
+  // Primär:    Rot #E60005 · Schwarz #1A1A18 · Dunkelgrau #4A4A49 (Logo-Zusatz)
+  // Sekundär:  Dunkelblau #002D55 · Hellblau #E8EEF4 · Hellgrau #F2F1EF
+  // Fließtext: #333330 · Rand/Linie: #D6D4D0
+  // Schrift:   Merriweather (Headlines) · system-ui (UI)
+  const CI = {
+    rot:        "#E60005",
+    rotHover:   "#C00004",
+    rotLight:   "#FEF0F0",
+    grau:       "#4A4A49",    // Bereitschaften-Grau (Logo-Zusatz)
+    schwarz:    "#1A1A18",
+    text:       "#333330",
+    dunkelblau: "#002D55",
+    hellblau:   "#E8EEF4",
+    hellgrau:   "#F2F1EF",
+    linie:      "#D6D4D0",
+    weiss:      "#FFFFFF",
+  };
+  const sL = {fontSize:11,fontWeight:600,color:CI.grau,marginBottom:4,display:"block",textTransform:"uppercase",letterSpacing:"0.06em"};
+  const sI = {width:"100%",padding:"9px 12px",border:`1px solid ${CI.linie}`,borderRadius:3,fontSize:13,fontFamily:"system-ui,-apple-system,sans-serif",boxSizing:"border-box",color:CI.text,background:CI.weiss};
+  const stepsDef=[{n:1,l:"Organisation"},{n:2,l:"Bereitschaften"},{n:3,l:"Kostensätze"},{n:4,l:"Abschluss"}];
+
+  return(
+  <div style={{minHeight:"100vh",background:CI.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",padding:24,fontFamily:"system-ui,-apple-system,sans-serif"}}>
+    <div style={{background:CI.weiss,borderRadius:2,maxWidth:720,width:"100%",boxShadow:"0 2px 16px rgba(26,26,24,0.10)",overflow:"hidden"}}>
+
+      {/* ── Header: Rot-Balken mit Kreuz-Symbol + Titel ── */}
+      <div style={{background:CI.rot,padding:"0 32px",display:"flex",alignItems:"stretch",minHeight:72}}>
+        {/* Weißes Kreuz-Feld */}
+        <div style={{background:CI.weiss,width:56,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",margin:"12px 20px 12px 0"}}>
+          <svg viewBox="0 0 36 36" width="40" height="40" aria-hidden="true">
+            <rect x="13" y="3"  width="10" height="30" fill={CI.rot}/>
+            <rect x="3"  y="13" width="30" height="10" fill={CI.rot}/>
+          </svg>
         </div>
-        <div style={{background:"#e8f4fd",border:"1px solid #90caf9",borderRadius:8,padding:"14px 16px"}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#1565c0",marginBottom:4}}>🔑 BRK.id Integration (optional)</div>
-          <div style={{fontSize:11,color:"#555",marginBottom:10}}>Die KV-Nummer (Claim: <code>kvid</code>) aus BRK.id ermöglicht automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil (z.B. <strong>701</strong> für Neuburg-Schrobenhausen).</div>
-          <label style={sL}>KV-Nummer (kvid)</label>
-          <input value={org.kvid} onChange={e=>setOrg(p=>({...p,kvid:e.target.value.replace(/\D/g,"")}))} placeholder="z.B. 701" style={{...sI,fontFamily:"monospace",maxWidth:140}} maxLength={5}/>
+        <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.75)",letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Bayerisches Rotes Kreuz · Bereitschaften</div>
+          <div style={{fontSize:18,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif"}}>SanWD – Ersteinrichtung</div>
+        </div>
+      </div>
+
+      {/* ── Grau-Balken: Bereitschaften-Zusatz ── */}
+      <div style={{background:CI.grau,padding:"8px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:11,color:"rgba(255,255,255,0.85)",letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:600}}>Sanitätswachdienst · Konfigurationsassistent</span>
+      </div>
+
+      {/* ── Schritt-Indikator ── */}
+      <div style={{display:"flex",borderBottom:`2px solid ${CI.linie}`}}>
+        {stepsDef.map((s,i)=>{
+          const done=step>s.n, active=step===s.n;
+          return(
+          <div key={s.n} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 4px 8px",borderBottom:active?`3px solid ${CI.rot}`:`3px solid transparent`,background:active?CI.rotLight:done?"#FAFAF9":CI.weiss,gap:4,borderRight:i<3?`1px solid ${CI.linie}`:"none"}}>
+            <div style={{width:24,height:24,borderRadius:"50%",background:done?CI.rot:active?CI.rot:CI.linie,color:CI.weiss,fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {done?"✓":s.n}
+            </div>
+            <span style={{fontSize:10,fontWeight:active?700:400,color:active?CI.rot:done?CI.grau:CI.linie,textTransform:"uppercase",letterSpacing:"0.06em"}}>{s.l}</span>
+          </div>);
+        })}
+      </div>
+
+      {/* ── Fehler ── */}
+      {error&&<div style={{margin:"16px 32px 0",padding:"10px 14px",background:CI.rotLight,borderLeft:`3px solid ${CI.rot}`,fontSize:12,color:CI.rot,fontWeight:500}}>⚠ {error}</div>}
+
+      {/* ════════════════════════════════════════
+          SCHRITT 1 – Organisation
+      ════════════════════════════════════════ */}
+      {step===1&&<div style={{padding:"28px 32px"}}>
+        <div style={{borderLeft:`3px solid ${CI.rot}`,paddingLeft:12,marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:CI.schwarz,fontFamily:"Merriweather,Georgia,serif"}}>Organisation</div>
+          <div style={{fontSize:12,color:CI.grau,marginTop:2}}>Grunddaten Ihres Kreisverbands</div>
+        </div>
+        <label style={sL}>Name des Kreisverbands *</label>
+        <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Neuburg-Schrobenhausen" style={{...sI,marginBottom:16}}/>
+        <label style={sL}>Kreisgeschäftsführer / Leitung</label>
+        <input value={org.kgf} onChange={e=>setOrg(p=>({...p,kgf:e.target.value}))} placeholder="z.B. Max Mustermann" style={{...sI,marginBottom:16}}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+          <div><label style={sL}>Adresse</label><input value={org.kv_adresse} onChange={e=>setOrg(p=>({...p,kv_adresse:e.target.value}))} placeholder="z.B. Musterstraße 1" style={sI}/></div>
+          <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 86633 Neuburg" style={sI}/></div>
+        </div>
+        {/* BRK.id Info-Box in Hellblau (Sekundärfarbe) */}
+        <div style={{background:CI.hellblau,border:`1px solid #C0CDD8`,borderLeft:`3px solid ${CI.dunkelblau}`,borderRadius:2,padding:"14px 16px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:CI.dunkelblau,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>BRK.id Integration (optional)</div>
+          <div style={{fontSize:12,color:CI.text,marginBottom:10,lineHeight:1.5}}>Die KV-Nummer (<code style={{background:"rgba(0,45,85,0.08)",padding:"1px 4px",borderRadius:2}}>kvid</code>) aus BRK.id ermöglicht die automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil – z.B. <strong>701</strong> für KV Neuburg-Schrobenhausen.</div>
+          <label style={{...sL,color:CI.dunkelblau}}>KV-Nummer (kvid)</label>
+          <input value={org.kvid} onChange={e=>setOrg(p=>({...p,kvid:e.target.value.replace(/\D/g,"")}))} placeholder="z.B. 701" style={{...sI,maxWidth:140,fontFamily:"monospace"}} maxLength={5}/>
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",marginTop:24}}>
-          <button onClick={saveOrg} disabled={saving||!org.kv_name.trim()} style={{padding:"10px 28px",background:org.kv_name.trim()?"#1a237e":"#ccc",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:org.kv_name.trim()?"pointer":"default",fontFamily:FONT.sans}}>{saving?"Speichert...":"Weiter →"}</button>
+          <button onClick={saveOrg} disabled={saving||!org.kv_name.trim()} style={{padding:"10px 28px",background:org.kv_name.trim()?CI.rot:"#ccc",color:CI.weiss,border:"none",borderRadius:2,fontSize:13,fontWeight:700,cursor:org.kv_name.trim()?"pointer":"default",fontFamily:"inherit",letterSpacing:"0.02em"}}>{saving?"Speichert …":"Weiter →"}</button>
         </div>
       </div>}
-      {step===2&&<div style={{padding:"24px 32px"}}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>🏥 Bereitschaften</div>
-        <div style={{fontSize:12,color:"#666",marginBottom:16}}>Legen Sie die Bereitschaften Ihres Kreisverbands an. Mindestens eine wird benötigt.</div>
+
+      {/* ════════════════════════════════════════
+          SCHRITT 2 – Bereitschaften
+      ════════════════════════════════════════ */}
+      {step===2&&<div style={{padding:"28px 32px"}}>
+        <div style={{borderLeft:`3px solid ${CI.rot}`,paddingLeft:12,marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:CI.schwarz,fontFamily:"Merriweather,Georgia,serif"}}>Bereitschaften</div>
+          <div style={{fontSize:12,color:CI.grau,marginTop:2}}>Legen Sie die Bereitschaften Ihres Kreisverbands an. Mindestens eine wird benötigt.</div>
+        </div>
         {bcs.length>0&&<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,marginBottom:16}}>
-          <thead><tr style={{borderBottom:"2px solid #e0e0e0"}}><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Code</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Name</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>BRK.id Gruppe</th><th style={{padding:"6px 4px",width:40}}></th></tr></thead>
-          <tbody>{bcs.map(b=><tr key={b.code} style={{borderBottom:"1px solid #f0f0f0"}}><td style={{padding:"8px",fontWeight:600,fontFamily:"monospace"}}>{b.code}</td><td style={{padding:"8px"}}>{b.name}</td><td style={{padding:"8px",fontFamily:"monospace",fontSize:11,color:"#555"}}>{b.brk_id_group||<span style={{color:"#bbb"}}>–</span>}</td><td style={{padding:"8px 4px"}}><button onClick={()=>removeBC(b.code)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"#e53935"}} title="Entfernen">🗑️</button></td></tr>)}</tbody>
+          <thead><tr style={{background:CI.hellgrau,borderBottom:`2px solid ${CI.linie}`}}>
+            <th style={{textAlign:"left",padding:"7px 10px",color:CI.grau,fontWeight:600,textTransform:"uppercase",fontSize:10,letterSpacing:"0.06em"}}>Code</th>
+            <th style={{textAlign:"left",padding:"7px 10px",color:CI.grau,fontWeight:600,textTransform:"uppercase",fontSize:10,letterSpacing:"0.06em"}}>Name</th>
+            <th style={{textAlign:"left",padding:"7px 10px",color:CI.grau,fontWeight:600,textTransform:"uppercase",fontSize:10,letterSpacing:"0.06em"}}>BRK.id Gruppe</th>
+            <th style={{width:36,padding:"7px 4px"}}></th>
+          </tr></thead>
+          <tbody>{bcs.map((b,i)=><tr key={b.code} style={{borderBottom:`1px solid ${CI.linie}`,background:i%2===0?CI.weiss:CI.hellgrau}}>
+            <td style={{padding:"8px 10px",fontWeight:700,fontFamily:"monospace",color:CI.rot}}>{b.code}</td>
+            <td style={{padding:"8px 10px",color:CI.text}}>{b.name}</td>
+            <td style={{padding:"8px 10px",fontFamily:"monospace",fontSize:11,color:CI.grau}}>{b.brk_id_group||<span style={{color:CI.linie}}>–</span>}</td>
+            <td style={{padding:"8px 4px",textAlign:"center"}}><button onClick={()=>removeBC(b.code)} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:CI.rot,opacity:0.7}} title="Entfernen">✕</button></td>
+          </tr>)}</tbody>
         </table>}
-        <div style={{background:"#f5f7fa",padding:"14px 16px",borderRadius:8,border:"1px dashed #ccc"}}>
-          <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8}}>+ Neue Bereitschaft</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr 1fr auto",gap:8,alignItems:"end"}}>
-            <div><label style={{...sL,fontSize:10}}>Code *</label><input value={newBC.code} onChange={e=>setNewBC(p=>({...p,code:e.target.value.toUpperCase()}))} placeholder="BND" style={{...sI,fontFamily:"monospace",textTransform:"uppercase"}}/></div>
-            <div><label style={{...sL,fontSize:10}}>Name *</label><input value={newBC.name} onChange={e=>setNewBC(p=>({...p,name:e.target.value}))} placeholder="Bereitschaft Neuburg" style={sI}/></div>
-            <div><label style={{...sL,fontSize:10}}>Kürzel</label><input value={newBC.short} onChange={e=>setNewBC(p=>({...p,short:e.target.value}))} placeholder="ND" style={sI}/></div>
-            <div><label style={{...sL,fontSize:10}}>BRK.id Gruppe</label><input value={newBC.brk_id_group} onChange={e=>setNewBC(p=>({...p,brk_id_group:e.target.value.replace(/\D/g,"")}))} placeholder="7013301" style={{...sI,fontFamily:"monospace"}} title="Gliederungsnummer aus BRK.id (z.B. 7013301 = OG Neuburg)"/></div>
-            <button onClick={addBC} disabled={saving||!newBC.code.trim()||!newBC.name.trim()} style={{padding:"9px 16px",background:newBC.code.trim()&&newBC.name.trim()?"#2e7d32":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",height:38}}>+ Hinzufügen</button>
+        <div style={{background:CI.hellgrau,padding:"16px",borderRadius:2,border:`1px dashed ${CI.linie}`}}>
+          <div style={{fontSize:10,fontWeight:700,color:CI.grau,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>+ Neue Bereitschaft</div>
+          <div style={{display:"grid",gridTemplateColumns:"100px 1fr 80px 1fr auto",gap:8,alignItems:"end"}}>
+            <div><label style={sL}>Code *</label><input value={newBC.code} onChange={e=>setNewBC(p=>({...p,code:e.target.value.toUpperCase()}))} placeholder="BND" style={{...sI,fontFamily:"monospace",textTransform:"uppercase"}}/></div>
+            <div><label style={sL}>Name *</label><input value={newBC.name} onChange={e=>setNewBC(p=>({...p,name:e.target.value}))} placeholder="Bereitschaft Neuburg" style={sI}/></div>
+            <div><label style={sL}>Kürzel</label><input value={newBC.short} onChange={e=>setNewBC(p=>({...p,short:e.target.value}))} placeholder="ND" style={sI}/></div>
+            <div><label style={sL}>BRK.id Gruppe</label><input value={newBC.brk_id_group} onChange={e=>setNewBC(p=>({...p,brk_id_group:e.target.value.replace(/\D/g,"")}))} placeholder="7013301" style={{...sI,fontFamily:"monospace"}} title="Gliederungsnummer aus BRK.id member-Claim"/></div>
+            <button onClick={addBC} disabled={saving||!newBC.code.trim()||!newBC.name.trim()} style={{padding:"9px 14px",background:newBC.code.trim()&&newBC.name.trim()?CI.rot:"#ccc",color:CI.weiss,border:"none",borderRadius:2,fontSize:12,fontWeight:700,cursor:"pointer",height:36,whiteSpace:"nowrap",alignSelf:"end",fontFamily:"inherit"}}>+ Hinzufügen</button>
           </div>
-          <div style={{fontSize:10,color:"#888",marginTop:6}}>Code = Eindeutiger Identifier (z.B. BSOB). BRK.id Gruppe = Gliederungsnummer aus BRK.id <code>member</code>-Claim (z.B. <code>7013301</code>). Kann später geändert werden.</div>
+          <div style={{fontSize:10,color:CI.grau,marginTop:8}}>BRK.id Gruppe = Gliederungsnummer aus BRK.id <code>member</code>-Claim (z.B. <code>7013301</code>). Kann nach der Einrichtung jederzeit geändert werden.</div>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
-          <button onClick={()=>setStep(1)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
-          <button onClick={()=>{if(bcs.length===0){setError("Mindestens eine Bereitschaft anlegen");return;}setError("");setStep(3);}} disabled={bcs.length===0} style={{padding:"10px 28px",background:bcs.length>0?"#1a237e":"#ccc",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:bcs.length>0?"pointer":"default",fontFamily:FONT.sans}}>Weiter →</button>
+          <button onClick={()=>setStep(1)} style={{padding:"10px 20px",background:CI.weiss,border:`1px solid ${CI.linie}`,borderRadius:2,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:CI.text}}>← Zurück</button>
+          <button onClick={()=>{if(bcs.length===0){setError("Mindestens eine Bereitschaft anlegen");return;}setError("");setStep(3);}} disabled={bcs.length===0} style={{padding:"10px 28px",background:bcs.length>0?CI.rot:"#ccc",color:CI.weiss,border:"none",borderRadius:2,fontSize:13,fontWeight:700,cursor:bcs.length>0?"pointer":"default",fontFamily:"inherit"}}>Weiter →</button>
         </div>
       </div>}
-      {step===3&&<div style={{padding:"24px 32px"}}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>💰 Kostensätze</div>
-        <div style={{fontSize:12,color:"#666",marginBottom:16}}>Standard-Kostensätze für alle Bereitschaften. Später pro BC anpassbar.</div>
+
+      {/* ════════════════════════════════════════
+          SCHRITT 3 – Kostensätze
+      ════════════════════════════════════════ */}
+      {step===3&&<div style={{padding:"28px 32px"}}>
+        <div style={{borderLeft:`3px solid ${CI.rot}`,paddingLeft:12,marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:CI.schwarz,fontFamily:"Merriweather,Georgia,serif"}}>Kostensätze</div>
+          <div style={{fontSize:12,color:CI.grau,marginTop:2}}>Standard-Kostensätze für alle Bereitschaften. Später individuell anpassbar.</div>
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:CI.grau,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Personalkosten</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+          {[{k:"helfer",l:"Helfer (€/Std)"},{k:"einsatzleiter",l:"Einsatzleiter (€/Std)"},{k:"verpflegung",l:"Verpflegung (€/P/8h)"}].map(r=>
+            <div key={r.k}><label style={sL}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
+          )}
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:CI.grau,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Fahrzeugkosten (€/Tag)</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:16}}>
+          {[{k:"ktw",l:"KTW"},{k:"rtw",l:"RTW"},{k:"gktw",l:"GKTW"},{k:"einsatzleiter_kfz",l:"EL-Kfz"},{k:"seg_lkw",l:"SEG-LKW"},{k:"mtw",l:"MTW"},{k:"zelt",l:"Zelt"}].map(r=>
+            <div key={r.k}><label style={sL}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
+          )}
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:CI.grau,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Kilometerkosten (€/km)</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-          {[{k:"helfer",l:"Helfer (€/Std)"},{k:"ktw",l:"KTW (€/Tag)"},{k:"rtw",l:"RTW (€/Tag)"},{k:"gktw",l:"GKTW (€/Tag)"},{k:"einsatzleiter",l:"EL (€/Std)"},{k:"einsatzleiter_kfz",l:"EL-Kfz (€/Tag)"},{k:"seg_lkw",l:"SEG-LKW (€/Tag)"},{k:"mtw",l:"MTW (€/Tag)"},{k:"zelt",l:"Zelt (€/Tag)"},{k:"verpflegung",l:"Verpflegung (€/P/8h)"}].map(r=>
-            <div key={r.k}><label style={{...sL,fontSize:10}}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
-          )}
-        </div>
-        <div style={{marginTop:12,fontSize:11,fontWeight:600,color:"#555"}}>Kilometerkosten</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:6}}>
-          {[{k:"km_ktw",l:"KTW (€/km)"},{k:"km_rtw",l:"RTW (€/km)"},{k:"km_gktw",l:"GKTW (€/km)"},{k:"km_el_kfz",l:"EL-Kfz (€/km)"},{k:"km_seg_lkw",l:"SEG-LKW (€/km)"},{k:"km_mtw",l:"MTW (€/km)"}].map(r=>
-            <div key={r.k}><label style={{...sL,fontSize:10}}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
+          {[{k:"km_ktw",l:"KTW"},{k:"km_rtw",l:"RTW"},{k:"km_gktw",l:"GKTW"},{k:"km_el_kfz",l:"EL-Kfz"},{k:"km_seg_lkw",l:"SEG-LKW"},{k:"km_mtw",l:"MTW"}].map(r=>
+            <div key={r.k}><label style={sL}>{r.l}</label><input type="number" step="0.01" value={rates[r.k]||0} onChange={e=>setRates(p=>({...p,[r.k]:parseFloat(e.target.value)||0}))} style={{...sI,fontFamily:"monospace"}}/></div>
           )}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
-          <button onClick={()=>setStep(2)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
-          <button onClick={saveRates} disabled={saving} style={{padding:"10px 28px",background:"#1a237e",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans}}>{saving?"Speichert...":"Weiter →"}</button>
+          <button onClick={()=>setStep(2)} style={{padding:"10px 20px",background:CI.weiss,border:`1px solid ${CI.linie}`,borderRadius:2,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:CI.text}}>← Zurück</button>
+          <button onClick={saveRates} disabled={saving} style={{padding:"10px 28px",background:CI.rot,color:CI.weiss,border:"none",borderRadius:2,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{saving?"Speichert …":"Weiter →"}</button>
         </div>
       </div>}
-      {step===4&&<div style={{padding:"24px 32px"}}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#2e7d32"}}>✅ Zusammenfassung</div>
-        <div style={{fontSize:12,color:"#666",marginBottom:20}}>Prüfen Sie Ihre Konfiguration und schließen Sie die Einrichtung ab.</div>
-        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>🏛️ Organisation</div>
-          <div style={{fontSize:12,lineHeight:1.8}}><strong>{org.kv_name||"–"}</strong>{org.kgf&&<span> · KGF: {org.kgf}</span>}{org.kv_adresse&&<div style={{color:"#666"}}>{org.kv_adresse}, {org.kv_plz_ort}</div>}</div>
+
+      {/* ════════════════════════════════════════
+          SCHRITT 4 – Zusammenfassung
+      ════════════════════════════════════════ */}
+      {step===4&&<div style={{padding:"28px 32px"}}>
+        <div style={{borderLeft:`3px solid ${CI.rot}`,paddingLeft:12,marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:700,color:CI.schwarz,fontFamily:"Merriweather,Georgia,serif"}}>Zusammenfassung</div>
+          <div style={{fontSize:12,color:CI.grau,marginTop:2}}>Prüfen Sie Ihre Konfiguration und schließen Sie die Einrichtung ab.</div>
         </div>
-        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>🏥 {bcs.length} Bereitschaft{bcs.length!==1?"en":""}</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{bcs.map(b=><span key={b.code} style={{background:"#e8eaf6",color:"#1a237e",padding:"4px 10px",borderRadius:12,fontSize:11,fontWeight:600}}>{b.short||b.code} – {b.name}</span>)}</div>
+        <div style={{border:`1px solid ${CI.linie}`,borderRadius:2,overflow:"hidden",marginBottom:12}}>
+          <div style={{background:CI.grau,padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:700,color:CI.weiss,textTransform:"uppercase",letterSpacing:"0.08em"}}>Organisation</span></div>
+          <div style={{padding:"12px 14px",fontSize:13,color:CI.text,lineHeight:1.7}}>
+            <strong>{org.kv_name||"–"}</strong>{org.kgf&&<span style={{color:CI.grau}}> · KGF: {org.kgf}</span>}
+            {org.kv_adresse&&<div style={{color:CI.grau,fontSize:12}}>{org.kv_adresse}, {org.kv_plz_ort}</div>}
+            {org.kvid&&<div style={{color:CI.dunkelblau,fontSize:12}}>BRK.id KV-Nummer: <code>{org.kvid}</code></div>}
+          </div>
         </div>
-        <div style={{background:"#f5f7fa",borderRadius:8,padding:"16px 20px",marginBottom:12}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#1a237e",marginBottom:8}}>💰 Kostensätze</div>
-          <div style={{fontSize:11,color:"#555"}}>Helfer: {rates.helfer}€/Std · KTW: {rates.ktw}€ · RTW: {rates.rtw}€ · Verpflegung: {rates.verpflegung}€</div>
+        <div style={{border:`1px solid ${CI.linie}`,borderRadius:2,overflow:"hidden",marginBottom:12}}>
+          <div style={{background:CI.grau,padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:700,color:CI.weiss,textTransform:"uppercase",letterSpacing:"0.08em"}}>{bcs.length} Bereitschaft{bcs.length!==1?"en":""}</span></div>
+          <div style={{padding:"12px 14px",display:"flex",flexWrap:"wrap",gap:6}}>
+            {bcs.map(b=><span key={b.code} style={{background:CI.hellgrau,border:`1px solid ${CI.linie}`,color:CI.grau,padding:"4px 10px",borderRadius:2,fontSize:11,fontWeight:700,fontFamily:"monospace"}}>{b.code} – {b.name}</span>)}
+          </div>
         </div>
-        <div style={{background:"#fff3e0",border:"1px solid #ffcc80",borderRadius:8,padding:"12px 16px",marginBottom:16}}>
-          <div style={{fontSize:12,color:"#e65100"}}>💡 SMTP, Nextcloud, Textvorlagen und weitere Einstellungen finden Sie nach der Einrichtung unter <strong>Einstellungen</strong>.</div>
+        <div style={{border:`1px solid ${CI.linie}`,borderRadius:2,overflow:"hidden",marginBottom:16}}>
+          <div style={{background:CI.grau,padding:"8px 14px"}}><span style={{fontSize:10,fontWeight:700,color:CI.weiss,textTransform:"uppercase",letterSpacing:"0.08em"}}>Kostensätze</span></div>
+          <div style={{padding:"12px 14px",fontSize:12,color:CI.grau}}>Helfer: {rates.helfer}€/Std · KTW: {rates.ktw}€/Tag · RTW: {rates.rtw}€/Tag · Verpflegung: {rates.verpflegung}€/P/8h</div>
+        </div>
+        <div style={{background:CI.hellblau,border:`1px solid #C0CDD8`,borderLeft:`3px solid ${CI.dunkelblau}`,borderRadius:2,padding:"12px 14px",marginBottom:16}}>
+          <div style={{fontSize:12,color:CI.dunkelblau}}>SMTP, Nextcloud-Integration, Textvorlagen und weitere Einstellungen finden Sie nach der Einrichtung unter <strong>Einstellungen</strong>.</div>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
-          <button onClick={()=>setStep(3)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
-          <button onClick={finish} disabled={saving} style={{padding:"12px 32px",background:"#2e7d32",color:"#fff",border:"none",borderRadius:8,fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,boxShadow:"0 4px 12px rgba(46,125,50,0.3)"}}>{saving?"Wird abgeschlossen...":"🚀 Einrichtung abschließen"}</button>
+          <button onClick={()=>setStep(3)} style={{padding:"10px 20px",background:CI.weiss,border:`1px solid ${CI.linie}`,borderRadius:2,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:CI.text}}>← Zurück</button>
+          <button onClick={finish} disabled={saving} style={{padding:"12px 32px",background:CI.rot,color:CI.weiss,border:"none",borderRadius:2,fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 8px ${CI.rot}40`}}>{saving?"Wird abgeschlossen …":"Einrichtung abschließen"}</button>
         </div>
       </div>}
+
     </div>
   </div>);
 }
+
 
 export default function App(){
   const [user,setUser]=useState(null);
