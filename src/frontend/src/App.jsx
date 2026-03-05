@@ -2727,7 +2727,7 @@ function SetupWizard({onComplete,user}){
       {/* ── Header: Rot-Balken mit Kreuz-Symbol + Titel ── */}
       <div style={{background:CI.rot,padding:"0 32px",display:"flex",alignItems:"stretch",minHeight:72}}>
         {/* BRK Bereitschaften Logo (outline, weiße Schrift → direkt auf Rot) */}
-        <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:68,width:"auto",flexShrink:0,padding:"8px 20px 8px 0"}}/>
+        <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:68,width:"auto",flexShrink:0,padding:"8px 20px 8px 0",mixBlendMode:"multiply"}}/>
         <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{fontSize:18,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif"}}>San-Auftragsmanager – Ersteinrichtung</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",marginTop:3,letterSpacing:"0.04em"}}>Konfigurationsassistent</div>
