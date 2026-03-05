@@ -268,7 +268,7 @@ function AddressAutocomplete({label,value,onChange,onResult}){
 // ═══════════════════════════════════════════════════════════════════════════
 // MINI MAP
 // ═══════════════════════════════════════════════════════════════════════════
-function LeafletMap({coords,w3w,onChange,onW3W}){
+function LeafletMap({coords,w3w,onChange,onW3W,defaultCenter}){
   const mapRef=useRef(null);const mapInst=useRef(null);const markerRef=useRef(null);const layersRef=useRef({});
   const [search,setSearch]=useState("");
   const [activeLayer,setActiveLayer]=useState("karte");
@@ -292,7 +292,7 @@ function LeafletMap({coords,w3w,onChange,onW3W}){
     };
     const initMap=()=>{
     const L=window.L;if(!L)return;
-    const lat=coords?.lat||48.63;const lng=coords?.lng||11.25;
+    const lat=coords?.lat||(defaultCenter?.lat)||48.63;const lng=coords?.lng||(defaultCenter?.lng)||11.25;
     const map=L.map(mapRef.current,{scrollWheelZoom:true}).setView([lat,lng],coords?.lat?17:10);
     // BKG TopPlusOpen WMTS (OpenData, weltweit, amtliche Daten für DE)
     const BKG="© BKG 2025 dl-de/by-2-0";
@@ -2915,6 +2915,13 @@ export default function App(){
   const reloadStammdaten=useCallback(()=>{if(!user)return;API.getStammdaten().then(d=>{if(d){const bIdxS=user?bereitschaften.findIndex(b=>b.code===user.bereitschaftCode):-1;setStammdaten(prev=>({...prev,bereitschaftIdx:bIdxS>=0?bIdxS:prev.bereitschaftIdx,kvName:d.kv_name||prev.kvName,kgf:d.kgf||prev.kgf,kvAdresse:d.kv_adresse||prev.kvAdresse,kvPlzOrt:d.kv_plz_ort||prev.kvPlzOrt,bereitschaftsleiter:d.leiter_name||prev.bereitschaftsleiter,bereitschaftsleiterTitle:d.leiter_title||prev.bereitschaftsleiterTitle,telefon:d.telefon||prev.telefon,fax:d.fax||prev.fax,mobil:d.mobil||prev.mobil,email:d.email||prev.email,funkgruppe:d.funkgruppe||prev.funkgruppe,customLogo:d.logo||null,rates:d.kostensaetze?{helfer:d.kostensaetze.helfer,ktw:d.kostensaetze.ktw,rtw:d.kostensaetze.rtw,gktw:d.kostensaetze.gktw,einsatzleiter:d.kostensaetze.einsatzleiter,aerzte:0,einsatzleiterKfz:d.kostensaetze.einsatzleiter_kfz,mobileSanstation:d.kostensaetze.seg_lkw,segLkw:d.kostensaetze.seg_lkw,mtw:d.kostensaetze.mtw,zelt:d.kostensaetze.zelt,kmKtw:d.kostensaetze.km_ktw,kmRtw:d.kostensaetze.km_rtw,kmGktw:d.kostensaetze.km_gktw,kmElKfz:d.kostensaetze.km_el_kfz,kmSegLkw:d.kostensaetze.km_seg_lkw,kmMtw:d.kostensaetze.km_mtw,verpflegung:d.kostensaetze.verpflegung}:prev.rates}));}setStammdatenLoaded(true);}).catch(e=>{console.warn("Stammdaten laden:",e);setStammdatenLoaded(true);});},[user]);
   useEffect(()=>{reloadStammdaten();},[user]);
   useEffect(()=>{
+    const addr=(stammdaten.kvAdresse||"")+" "+(stammdaten.kvPlzOrt||"");
+    if(!addr.trim()||kvCoords)return;
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1&countrycodes=de`,{headers:{"User-Agent":"BRK-SanWD/8.0"}})
+      .then(r=>r.json()).then(d=>{if(d[0])setKvCoords({lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)});})
+      .catch(()=>{});
+  },[stammdaten.kvAdresse,stammdaten.kvPlzOrt]);
+  useEffect(()=>{
   if(!user||user.rolle==="helfer")return;
   const t=setTimeout(()=>{
     if(user.rolle==="admin"||user.rolle==="kbl"){
@@ -2989,6 +2996,7 @@ export default function App(){
   const [kompOverride,setKompOverride]=useState({ack:false,kommentar:"",saving:false});
   const [showKompModal,setShowKompModal]=useState(false);
   const [stammdatenLoaded,setStammdatenLoaded]=useState(false);
+  const [kvCoords,setKvCoords]=useState(null);
   const printRef=useRef(null);
 
   const [year,setYear]=useState(new Date().getFullYear());
@@ -3237,7 +3245,7 @@ export default function App(){
                   <Inp label="Veranstaltungsort" value={event.ort} onChange={v=>updateEvent("ort",v)} disabled={isLocked}/>
                   <AddressAutocomplete label="Adresse inkl. Hausnummer (z.B. Karl-Konrad-Str. 3)" value={event.adresse} onChange={v=>updateEvent("adresse",v)} onResult={s=>{updateEvent("coords",{lat:s.lat,lng:s.lng});if(s.w3w)updateEvent("w3w",s.w3w);updateEvent("addrImprecise",!!s.imprecise);}}/>
                 </div>
-                <LeafletMap coords={event.coords} w3w={event.w3w} onChange={r=>{updateEvent("coords",{lat:r.lat,lng:r.lng});if(r.address)updateEvent("adresse",r.address);updateEvent("addrImprecise",false);}} onW3W={w=>updateEvent("w3w",w)}/>
+                <LeafletMap coords={event.coords} w3w={event.w3w} defaultCenter={kvCoords} onChange={r=>{updateEvent("coords",{lat:r.lat,lng:r.lng});if(r.address)updateEvent("adresse",r.address);updateEvent("addrImprecise",false);}} onW3W={w=>updateEvent("w3w",w)}/>
                 {event.addrImprecise&&<div style={{background:"#fff3cd",border:"1px solid #ffc107",borderRadius:4,padding:"8px 12px",marginTop:6,fontSize:12,color:"#856404",display:"flex",alignItems:"center",gap:8}}>⚠️ <span>Hausnummer konnte nicht exakt aufgelöst werden. <strong>Bitte Pin auf der Karte zur genauen Position verschieben</strong> – der what3words-Code wird automatisch aktualisiert.</span></div>}
                 <div className="rg2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 16px",marginTop:10}}>
                   <Chk label="Kfz-Stellplatz vorhanden" checked={event.kfzStellplatz} onChange={v=>{if(!isLocked)updateEvent("kfzStellplatz",v)}}/>
