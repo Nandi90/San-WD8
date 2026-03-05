@@ -2729,7 +2729,7 @@ function SetupWizard({onComplete,user}){
         {/* BRK Bereitschaften Logo (outline, weiße Schrift → direkt auf Rot) */}
         <img src={BRK_LOGO} alt="BRK Bereitschaften" style={{height:68,width:"auto",flexShrink:0,padding:"8px 20px 8px 0"}}/>
         <div style={{display:"flex",flexDirection:"column",justifyContent:"center"}}>
-          <div style={{fontSize:18,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif"}}>SanWD – Ersteinrichtung</div>
+          <div style={{fontSize:18,fontWeight:700,color:CI.weiss,letterSpacing:"-0.01em",fontFamily:"Merriweather,Georgia,serif"}}>San-Auftragsmanager – Ersteinrichtung</div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",marginTop:3,letterSpacing:"0.04em"}}>Konfigurationsassistent</div>
         </div>
       </div>
