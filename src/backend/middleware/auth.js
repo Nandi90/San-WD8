@@ -30,34 +30,36 @@ async function getClient() {
   return oidcClient;
 }
 
-// ── BRK.id Claim-Auflösung (numerische Gliederungscodes) ──────────
+// ── Universal Auth-Resolver (Multi-IDP) ───────────────────────────
 //
-// BRK.id liefert KEINE group-Strings, sondern numerische Codes:
-//   member:       ["7013300","7023600"]     Gliederungszugehörigkeit
-//   associations: ["7013300","9052205"]     Alle Mitwirkungen inkl. Funktionen
-//   kvid:         "701"                     Führender Kreisverband
-//   communities:  [33]                      Gemeinschafts-ID (33 = Bereitschaften)
+// Modus 1 – Eigener Keycloak (brkndsob.org):
+//   groups: ["GRP_Kreisbereitschaftsleitung", "GRP_Bereitschaft_ND"]
+//   → String-Codes in brk_id_groups.group_code / bereitschaften.brk_id_group
 //
-// Gliederungsnummern-Schema (BRK):
-//   xxx3300  = Kreisbereitschaft  (xxx = KV-Nummer, z.B. 701 → 7013300)
-//   xxx3600  = Kreiswasserwacht
-//   xxx33xx  = Ortsbereitschaft (letzte 2 Stellen = Orts-Index)
+// Modus 2 – BRK.id direkt (andere KVs ohne eigenen Keycloak):
+//   member: ["7013300","7013301"], associations: [...], kvid: "701"
+//   → Numerische Gliederungscodes (xxx3300 = Kreisbereitschaft)
 //
-// Mapping-Logik:
-//   1. brk_id_groups:    numerischer code → Rolle  (Funktion wie KBL, FDL-San...)
-//   2. bereitschaften.brk_id_group: numerischer code → BC  (Orgs-Zugehörigkeit)
+// Modus 3 – Kein Mapping / lokale Instanz:
+//   Keine bekannten Gruppen → rolle=helfer, BC=null
+//   Admin weist Rolle/BC manuell über Admin-Panel zu.
+//
+// brk_id_groups-Tabelle nimmt BEIDE Formate auf:
+//   "GRP_Kreisbereitschaftsleitung" → admin  (Keycloak-String)
+//   "9052205"                       → admin  (BRK.id Numerik)
 
 const ROLE_PRIORITY = { admin: 5, kbl: 4, bl: 3, se: 2, helfer: 1 };
 
 function resolveUserFromBrkId(userinfo) {
   const db = getDb();
 
-  // Alle numerischen Codes aus allen relevanten Claim-Feldern zusammenführen
+  // Alle Codes/Gruppen aus allen bekannten Claim-Feldern
   const allCodes = new Set([
-    ...(userinfo.member        || []).map(String),
-    ...(userinfo.associations  || []).map(String),
-    ...(userinfo.groups        || []).map(String),  // Keycloak-Kompatibilität
-    ...(userinfo.memberOf      || []).map(String),  // AAD-Kompatibilität
+    ...(userinfo.groups        || []).map(String),  // Keycloak groups (Strings)
+    ...(userinfo.member        || []).map(String),  // BRK.id Gliederung (Numerik)
+    ...(userinfo.associations  || []).map(String),  // BRK.id Funktionen (Numerik)
+    ...(userinfo.memberOf      || []).map(String),  // AAD Kompatibilität
+    ...(userinfo.membership    || []).map(String),  // sonstige IDPs
   ]);
 
   const kvid = String(userinfo.kvid || "");
@@ -66,7 +68,7 @@ function resolveUserFromBrkId(userinfo) {
   let bereitschaftCode = null;
 
   for (const code of allCodes) {
-    // 1. Funktionscode → Rolle (aus brk_id_groups Tabelle)
+    // 1. Lookup in brk_id_groups – funktioniert für Strings UND Zahlen gleich
     const funcGroup = db.prepare(
       "SELECT rolle FROM brk_id_groups WHERE group_code=? AND active=1"
     ).get(code);
@@ -76,7 +78,7 @@ function resolveUserFromBrkId(userinfo) {
       }
     }
 
-    // 2. Gliederungscode → Bereitschaft (aus bereitschaften.brk_id_group)
+    // 2. Bereitschaftszuordnung via brk_id_group-Feld
     if (!bereitschaftCode) {
       const bc = db.prepare(
         "SELECT code FROM bereitschaften WHERE brk_id_group=? LIMIT 1"
@@ -85,20 +87,20 @@ function resolveUserFromBrkId(userinfo) {
     }
   }
 
-  // Fallback: Wenn kvid bekannt aber noch keine BC gefunden →
-  // Kreisbereitschafts-Code ableiten (kvid + "3300") und in DB suchen
+  // BRK.id Fallback: kvid + "3300" → Kreisbereitschaft
   if (!bereitschaftCode && kvid) {
-    const kbCode = kvid + "3300";
     const bc = db.prepare(
       "SELECT code FROM bereitschaften WHERE brk_id_group=? LIMIT 1"
-    ).get(kbCode);
+    ).get(kvid + "3300");
     if (bc) bereitschaftCode = bc.code;
   }
 
-  // Admin ohne BC → ADMIN-Sentinel (Vollzugriff KBL/Admin ohne BC-Filter)
+  // Modus 3: Kein Mapping → Fallback
+  // Admin/KBL ohne BC → ADMIN-Sentinel; alle anderen → helfer ohne BC
   if (!bereitschaftCode && (rolle === "admin" || rolle === "kbl")) {
     bereitschaftCode = "ADMIN";
   }
+  // rolle=helfer + bc=null ist valid → User landet im System, Admin weist zu
 
   return { rolle, bereitschaftCode, kvid, allCodes: [...allCodes] };
 }
