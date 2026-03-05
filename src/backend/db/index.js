@@ -290,37 +290,18 @@ function migrate() {
     created_at  TEXT DEFAULT (datetime('now'))
   )`);
 
-  // Seed: offizielle BRK.id Funktionsgruppen auf Kreisebene (aus BRK.id Dokumentation)
-  // Nur einfügen wenn Tabelle noch leer ist
-  const existingGroups = db.prepare("SELECT COUNT(*) as c FROM brk_id_groups").get().c;
-  if (existingGroups === 0) {
-    const insGroup = db.prepare(`
-      INSERT OR IGNORE INTO brk_id_groups (group_code, type, rolle, description)
-      VALUES (?, 'rolle', ?, ?)
-    `);
-    // Kreisbereitschaftsleitung → admin
-    insGroup.run("BER - KBL",                  "admin", "Kreisbereitschaftsleitung");
-    // Kreisfachdienstleiter → kbl (erhöhte Kompetenz, aber kein Vollzugriff)
-    insGroup.run("BER - FDL-Sanität",           "kbl",   "KFDL Sanitätsdienst");
-    insGroup.run("BER - FDL-T+S",               "kbl",   "KFDL Transport & Sanitätsdienst");
-    insGroup.run("BER - FDL-CBRNE",             "kbl",   "KFDL CBRN(E)");
-    insGroup.run("BER - FDL-IuK",               "kbl",   "KFDL Information und Kommunikation");
-    insGroup.run("BER - FDL-Betreuung",         "kbl",   "KFDL Betreuungsdienst");
-    insGroup.run("BER - FDL-PSNV",              "kbl",   "KFDL Psychosoziale Notfallversorgung");
-    insGroup.run("BER - FDL-Rettungshunde",     "kbl",   "KFDL Rettungshundearbeit");
-    insGroup.run("BER - FDL-Personenauskunft",  "kbl",   "KFDL Personenauskunft");
-    insGroup.run("BER - FDL-Motorrad",          "kbl",   "KFDL Motorrad");
-    // Jugend & Service
-    insGroup.run("BER - KBJW",                  "se",    "Kreisbereitschaftsjugendwart");
-    insGroup.run("BER - OGJW",                  "se",    "Bereitschaftsjugendwart (OG)");
-    // Bereitschaftsärzte → BL-Niveau (fachliche Leitungsfunktion)
-    insGroup.run("BER - Bereitschaftsärzte",    "bl",    "Bereitschaftsärzte");
-    // Bezirks- und Landesebene → werden bei Kreisverband-Instanzen ignoriert,
-    // aber erfasst damit sie keinen Fehler erzeugen
-    insGroup.run("BER - BBL BV",                "admin", "Bezirksbereitschaftsleitung");
-    insGroup.run("BER - LAS",                   "admin", "Landesausschuss BRK-Bereitschaften");
-    console.log("BRK.id Gruppen-Seed: 15 Einträge angelegt");
-  }
+  // Seed: offizielle BRK.id Funktionscodes auf Kreisebene
+  // Schema: xxx3300 = Kreisbereitschaft, xxx36xx = Wasserwacht (xxx = KV-Nummer)
+  // Funktionscodes werden aus BRK.id associations-Claim geliefert
+  // WICHTIG: Diese Codes sind KV-spezifisch und müssen nach Ersteinrichtung
+  //          über Admin → BRK.id Gruppen pro Instanz angepasst werden.
+  //
+  // Beispiel-Struktur für KV 701 (Neuburg-Schrobenhausen):
+  //   7013300 = Kreisbereitschaft NDS (→ Gliederungszugehörigkeit, nicht Funktion)
+  // Funktions-Codes wie KBL, FDL kommen als separate associations-Einträge.
+  // Da diese KV-spezifisch sind, werden KEINE generischen Seeds angelegt –
+  // der Admin trägt sie beim Setup ein.
+  console.log("BRK.id Gruppen-Tabelle bereit (keine Defaults – KV-spezifisch konfigurieren)");
   db.exec(`CREATE TABLE IF NOT EXISTS anfragen (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL, ort TEXT, adresse TEXT, datum TEXT,

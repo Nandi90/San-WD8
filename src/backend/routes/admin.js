@@ -71,6 +71,20 @@ router.get("/stats", (req, res) => {
   });
 });
 
+// ── App-Konfiguration ─────────────────────────────────────────────
+router.post("/config", (req, res) => {
+  const { key, value } = req.body || {};
+  if (!key) return res.status(400).json({ error: "key fehlt" });
+  const { setConfig } = require("../db");
+  setConfig(key, String(value ?? ""));
+  res.json({ ok: true });
+});
+
+router.get("/config/:key", (req, res) => {
+  const { getConfig } = require("../db");
+  res.json({ key: req.params.key, value: getConfig(req.params.key, null) });
+});
+
 // ── BRK.id Gruppen-Verwaltung ─────────────────────────────────────
 
 // Alle BRK.id Funktionsgruppen auflisten

@@ -316,6 +316,14 @@ const API = {
     if (!r.ok) { const e = await r.json().catch(()=>({error:"Fehler"})); throw new Error(e.error||"PDF Fehler"); }
     return r.blob();
   },
+  // App-Konfiguration
+  async setConfig(key, value) { return this.json("/api/admin/config", { method: "POST", body: JSON.stringify({ key, value }) }); },
+  async getConfig(key) { return this.json(`/api/admin/config/${key}`); },
+  // BRK.id Gruppen-Mapping
+  async getBrkIdGroups() { return this.json("/api/admin/brk-id-groups"); },
+  async setBrkIdGroup(code, data) { return this.json(`/api/admin/brk-id-groups/${encodeURIComponent(code)}`, { method: "PUT", body: JSON.stringify(data) }); },
+  async deleteBrkIdGroup(code) { return this.json(`/api/admin/brk-id-groups/${encodeURIComponent(code)}`, { method: "DELETE" }); },
+  async setBereitschaftBrkIdGroup(bcCode, brkIdGroup) { return this.json(`/api/admin/bereitschaften/${bcCode}/brk-id-group`, { method: "PUT", body: JSON.stringify({ brk_id_group: brkIdGroup }) }); },
 };
 export default API;
 // Papierkorb

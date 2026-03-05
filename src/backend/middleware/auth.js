@@ -30,44 +30,77 @@ async function getClient() {
   return oidcClient;
 }
 
-// ── Rolle + Bereitschaft aus BRK.id Claims bestimmen (DB-gesteuert) ──
-// Gruppen kommen als Array von Strings aus dem OIDC-Token, z.B.:
-//   ["BER - KBL", "BER - FDL-Sanität"]
-// Die Mappings liegen in der DB (brk_id_groups + bereitschaften.brk_id_group)
+// ── BRK.id Claim-Auflösung (numerische Gliederungscodes) ──────────
+//
+// BRK.id liefert KEINE group-Strings, sondern numerische Codes:
+//   member:       ["7013300","7023600"]     Gliederungszugehörigkeit
+//   associations: ["7013300","9052205"]     Alle Mitwirkungen inkl. Funktionen
+//   kvid:         "701"                     Führender Kreisverband
+//   communities:  [33]                      Gemeinschafts-ID (33 = Bereitschaften)
+//
+// Gliederungsnummern-Schema (BRK):
+//   xxx3300  = Kreisbereitschaft  (xxx = KV-Nummer, z.B. 701 → 7013300)
+//   xxx3600  = Kreiswasserwacht
+//   xxx33xx  = Ortsbereitschaft (letzte 2 Stellen = Orts-Index)
+//
+// Mapping-Logik:
+//   1. brk_id_groups:    numerischer code → Rolle  (Funktion wie KBL, FDL-San...)
+//   2. bereitschaften.brk_id_group: numerischer code → BC  (Orgs-Zugehörigkeit)
 
-function resolveUserFromGroups(groups = []) {
+const ROLE_PRIORITY = { admin: 5, kbl: 4, bl: 3, se: 2, helfer: 1 };
+
+function resolveUserFromBrkId(userinfo) {
   const db = getDb();
+
+  // Alle numerischen Codes aus allen relevanten Claim-Feldern zusammenführen
+  const allCodes = new Set([
+    ...(userinfo.member        || []).map(String),
+    ...(userinfo.associations  || []).map(String),
+    ...(userinfo.groups        || []).map(String),  // Keycloak-Kompatibilität
+    ...(userinfo.memberOf      || []).map(String),  // AAD-Kompatibilität
+  ]);
+
+  const kvid = String(userinfo.kvid || "");
 
   let rolle = "helfer";
   let bereitschaftCode = null;
 
-  // Priorität der Rollen (höchste zuerst)
-  const rolePriority = { admin: 5, kbl: 4, bl: 3, se: 2, helfer: 1 };
-
-  for (const grp of groups) {
-    // 1. Funktionsgruppe? → Rolle bestimmen
+  for (const code of allCodes) {
+    // 1. Funktionscode → Rolle (aus brk_id_groups Tabelle)
     const funcGroup = db.prepare(
       "SELECT rolle FROM brk_id_groups WHERE group_code=? AND active=1"
-    ).get(grp);
+    ).get(code);
     if (funcGroup) {
-      if ((rolePriority[funcGroup.rolle] || 0) > (rolePriority[rolle] || 0)) {
+      if ((ROLE_PRIORITY[funcGroup.rolle] || 0) > (ROLE_PRIORITY[rolle] || 0)) {
         rolle = funcGroup.rolle;
       }
     }
 
-    // 2. Bereitschafts-Gruppe? → BC aus bereitschaften.brk_id_group
+    // 2. Gliederungscode → Bereitschaft (aus bereitschaften.brk_id_group)
     if (!bereitschaftCode) {
       const bc = db.prepare(
         "SELECT code FROM bereitschaften WHERE brk_id_group=? LIMIT 1"
-      ).get(grp);
+      ).get(code);
       if (bc) bereitschaftCode = bc.code;
     }
   }
 
-  // Admin ohne spezifische BC → ADMIN-Sentinel
-  if (!bereitschaftCode && rolle === "admin") bereitschaftCode = "ADMIN";
+  // Fallback: Wenn kvid bekannt aber noch keine BC gefunden →
+  // Kreisbereitschafts-Code ableiten (kvid + "3300") und in DB suchen
+  if (!bereitschaftCode && kvid) {
+    const kbCode = kvid + "3300";
+    const bc = db.prepare(
+      "SELECT code FROM bereitschaften WHERE brk_id_group=? LIMIT 1"
+    ).get(kbCode);
+    if (bc) bereitschaftCode = bc.code;
+  }
 
-  return { rolle, bereitschaftCode };
+  // Admin ohne BC → ADMIN-Sentinel (Vollzugriff KBL/Admin ohne BC-Filter)
+  if (!bereitschaftCode && (rolle === "admin" || rolle === "kbl")) {
+    bereitschaftCode = "ADMIN";
+  }
+
+  return { rolle, bereitschaftCode, kvid, allCodes: [...allCodes] };
 }
 
 
@@ -157,7 +190,7 @@ router.get("/login", async (req, res) => {
   req.session.oidcState = state;
 
   res.redirect(client.authorizationUrl({
-    scope: "openid profile email groups",
+    scope: "openid profile email",   // BRK.id: member/associations/kvid kommen automatisch
     nonce, state,
   }));
 });
@@ -180,25 +213,30 @@ router.get("/callback", async (req, res) => {
     );
     const userinfo = await client.userinfo(tokenSet.access_token);
 
-    // DEBUG: Alle Claims loggen
-    console.log("OIDC userinfo claims:", JSON.stringify({
-      sub: userinfo.sub,
-      groups: userinfo.groups,
-      memberOf: userinfo.memberOf,
-      membership: userinfo.membership,
-      roles: userinfo.realm_access?.roles,
-      clientRoles: userinfo.resource_access?.[process.env.OIDC_CLIENT_ID]?.roles,
-      allKeys: Object.keys(userinfo)
+    // DEBUG: BRK.id Claims vollständig loggen
+    console.log("BRK.id userinfo claims:", JSON.stringify({
+      sub:          userinfo.sub,
+      displayName:  userinfo.displayName,
+      kvid:         userinfo.kvid,
+      member:       userinfo.member,
+      associations: userinfo.associations,
+      communities:  userinfo.communities,
+      vewaId:       userinfo.vewaId,
+      // Keycloak/AAD Kompatibilität
+      groups:       userinfo.groups,
+      memberOf:     userinfo.memberOf,
+      allKeys:      Object.keys(userinfo)
     }, null, 2));
 
-    // Gruppen aus verschiedenen Claim-Feldern zusammenführen (BRK.id Kompatibilität)
-    const rawGroups = [
-      ...(userinfo.groups || []),
-      ...(userinfo.memberOf || []),
-      ...(userinfo.membership || []),
-    ];
-    const { rolle, bereitschaftCode: rawBC } = resolveUserFromGroups(rawGroups);
+    const { rolle, bereitschaftCode: rawBC, kvid, allCodes } = resolveUserFromBrkId(userinfo);
     let bereitschaftCode = rawBC;
+
+    // Name: BRK.id liefert displayName oder given_name + family_name
+    const userName = userinfo.displayName
+      || userinfo.name
+      || `${userinfo.given_name || ""} ${userinfo.family_name || ""}`.trim()
+      || userinfo.preferred_username
+      || "Unbekannt";
 
     if (!bereitschaftCode || bereitschaftCode === "ADMIN") {
       if (rolle === "admin") {
@@ -219,11 +257,14 @@ router.get("/callback", async (req, res) => {
     }
 
     req.session.user = {
-      sub: userinfo.sub,
-      name: userinfo.name || userinfo.preferred_username,
-      email: userinfo.email,
+      sub:             userinfo.sub,
+      name:            userName,
+      email:           userinfo.email || "",
       rolle,
       bereitschaftCode,
+      kvid:            kvid || "",
+      vewaId:          String(userinfo.vewaId || ""),
+      picture:         userinfo.picture || "",
     };
 
     // Token-Infos fuer Session-Validierung

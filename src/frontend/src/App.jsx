@@ -2652,15 +2652,15 @@ const RELEASE_V72={v:"v7.2",d:"03.03.2026",c:[
 function SetupWizard({onComplete,user}){
   const [step,setStep]=useState(1);
   const [saving,setSaving]=useState(false);
-  const [org,setOrg]=useState({kv_name:"",kgf:"",kv_adresse:"",kv_plz_ort:""});
+  const [org,setOrg]=useState({kv_name:"",kgf:"",kv_adresse:"",kv_plz_ort:"",kvid:""});
   const [bcs,setBcs]=useState([]);
-  const [newBC,setNewBC]=useState({code:"",name:"",short:""});
+  const [newBC,setNewBC]=useState({code:"",name:"",short:"",brk_id_group:""});
   const [rates,setRates]=useState({helfer:14,ktw:125,rtw:155,gktw:105,einsatzleiter:14,einsatzleiter_kfz:155,seg_lkw:125,mtw:50,zelt:60,km_ktw:0.4,km_rtw:0.4,km_gktw:0.4,km_el_kfz:0.6,km_seg_lkw:0.6,km_mtw:0.4,verpflegung:17});
   const [error,setError]=useState("");
   const loadBCs=async()=>{try{const r=await API.getBereitschaften();setBcs(r||[]);}catch(e){console.error(e);}};
   useEffect(()=>{loadBCs();},[]);
-  const saveOrg=async()=>{if(!org.kv_name.trim()){setError("Kreisverband-Name erforderlich");return;}setSaving(true);setError("");try{if(bcs.length>0)await API.saveOrganisation(org);setStep(2);}catch(e){setError(e.message);}finally{setSaving(false);}};
-  const addBC=async()=>{if(!newBC.code.trim()||!newBC.name.trim()){setError("Code und Name erforderlich");return;}setSaving(true);setError("");try{await API.createBereitschaft({code:newBC.code.toUpperCase().trim(),name:newBC.name.trim(),short:newBC.short.trim()||newBC.code.toUpperCase().trim()});setNewBC({code:"",name:"",short:""});await loadBCs();if(org.kv_name)await API.saveOrganisation(org);}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const saveOrg=async()=>{if(!org.kv_name.trim()){setError("Kreisverband-Name erforderlich");return;}setSaving(true);setError("");try{if(bcs.length>0)await API.saveOrganisation(org);if(org.kvid.trim())await API.setConfig("brk_id_kvid",org.kvid.trim());setStep(2);}catch(e){setError(e.message);}finally{setSaving(false);}};
+  const addBC=async()=>{if(!newBC.code.trim()||!newBC.name.trim()){setError("Code und Name erforderlich");return;}setSaving(true);setError("");try{const bcData={code:newBC.code.toUpperCase().trim(),name:newBC.name.trim(),short:newBC.short.trim()||newBC.code.toUpperCase().trim(),brk_id_group:newBC.brk_id_group.trim()};await API.createBereitschaft(bcData);if(newBC.brk_id_group.trim())await API.setBereitschaftBrkIdGroup(bcData.code,newBC.brk_id_group.trim());setNewBC({code:"",name:"",short:"",brk_id_group:""});await loadBCs();if(org.kv_name)await API.saveOrganisation(org);}catch(e){setError(e.message);}finally{setSaving(false);}};
   const removeBC=async(code)=>{setSaving(true);setError("");try{await API.deleteBereitschaft(code);await loadBCs();}catch(e){setError(e.message);}finally{setSaving(false);}};
   const saveRates=async()=>{setSaving(true);setError("");try{await API.applyKostensaetzeAll(rates);setStep(4);}catch(e){setError(e.message);}finally{setSaving(false);}};
   const finish=async()=>{setSaving(true);setError("");try{if(org.kv_name)await API.saveOrganisation(org);await API.completeSetup();onComplete();}catch(e){setError(e.message);}finally{setSaving(false);}};
@@ -2679,9 +2679,15 @@ function SetupWizard({onComplete,user}){
         <input value={org.kv_name} onChange={e=>setOrg(p=>({...p,kv_name:e.target.value}))} placeholder="z.B. Kreisverband Neuburg-Schrobenhausen" style={{...sI,marginBottom:14}}/>
         <label style={sL}>Kreisgeschäftsführer / Leitung</label>
         <input value={org.kgf} onChange={e=>setOrg(p=>({...p,kgf:e.target.value}))} placeholder="z.B. Max Mustermann" style={{...sI,marginBottom:14}}/>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
           <div><label style={sL}>Adresse</label><input value={org.kv_adresse} onChange={e=>setOrg(p=>({...p,kv_adresse:e.target.value}))} placeholder="z.B. Musterstraße 1" style={sI}/></div>
           <div><label style={sL}>PLZ Ort</label><input value={org.kv_plz_ort} onChange={e=>setOrg(p=>({...p,kv_plz_ort:e.target.value}))} placeholder="z.B. 12345 Musterstadt" style={sI}/></div>
+        </div>
+        <div style={{background:"#e8f4fd",border:"1px solid #90caf9",borderRadius:8,padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#1565c0",marginBottom:4}}>🔑 BRK.id Integration (optional)</div>
+          <div style={{fontSize:11,color:"#555",marginBottom:10}}>Die KV-Nummer (Claim: <code>kvid</code>) aus BRK.id ermöglicht automatische Rollenzuweisung beim Login. Zu finden im BRK.id-Profil (z.B. <strong>701</strong> für Neuburg-Schrobenhausen).</div>
+          <label style={sL}>KV-Nummer (kvid)</label>
+          <input value={org.kvid} onChange={e=>setOrg(p=>({...p,kvid:e.target.value.replace(/\D/g,"")}))} placeholder="z.B. 701" style={{...sI,fontFamily:"monospace",maxWidth:140}} maxLength={5}/>
         </div>
         <div style={{display:"flex",justifyContent:"flex-end",marginTop:24}}>
           <button onClick={saveOrg} disabled={saving||!org.kv_name.trim()} style={{padding:"10px 28px",background:org.kv_name.trim()?"#1a237e":"#ccc",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:700,cursor:org.kv_name.trim()?"pointer":"default",fontFamily:FONT.sans}}>{saving?"Speichert...":"Weiter →"}</button>
@@ -2691,18 +2697,19 @@ function SetupWizard({onComplete,user}){
         <div style={{fontSize:16,fontWeight:700,marginBottom:4,color:"#1a237e"}}>🏥 Bereitschaften</div>
         <div style={{fontSize:12,color:"#666",marginBottom:16}}>Legen Sie die Bereitschaften Ihres Kreisverbands an. Mindestens eine wird benötigt.</div>
         {bcs.length>0&&<table style={{width:"100%",borderCollapse:"collapse",fontSize:12,marginBottom:16}}>
-          <thead><tr style={{borderBottom:"2px solid #e0e0e0"}}><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Code</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Name</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Kürzel</th><th style={{padding:"6px 4px",width:40}}></th></tr></thead>
-          <tbody>{bcs.map(b=><tr key={b.code} style={{borderBottom:"1px solid #f0f0f0"}}><td style={{padding:"8px",fontWeight:600,fontFamily:"monospace"}}>{b.code}</td><td style={{padding:"8px"}}>{b.name}</td><td style={{padding:"8px"}}>{b.short}</td><td style={{padding:"8px 4px"}}><button onClick={()=>removeBC(b.code)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"#e53935"}} title="Entfernen">🗑️</button></td></tr>)}</tbody>
+          <thead><tr style={{borderBottom:"2px solid #e0e0e0"}}><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Code</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>Name</th><th style={{textAlign:"left",padding:"6px 8px",color:"#666"}}>BRK.id Gruppe</th><th style={{padding:"6px 4px",width:40}}></th></tr></thead>
+          <tbody>{bcs.map(b=><tr key={b.code} style={{borderBottom:"1px solid #f0f0f0"}}><td style={{padding:"8px",fontWeight:600,fontFamily:"monospace"}}>{b.code}</td><td style={{padding:"8px"}}>{b.name}</td><td style={{padding:"8px",fontFamily:"monospace",fontSize:11,color:"#555"}}>{b.brk_id_group||<span style={{color:"#bbb"}}>–</span>}</td><td style={{padding:"8px 4px"}}><button onClick={()=>removeBC(b.code)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"#e53935"}} title="Entfernen">🗑️</button></td></tr>)}</tbody>
         </table>}
         <div style={{background:"#f5f7fa",padding:"14px 16px",borderRadius:8,border:"1px dashed #ccc"}}>
           <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8}}>+ Neue Bereitschaft</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr auto",gap:8,alignItems:"end"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr 1fr auto",gap:8,alignItems:"end"}}>
             <div><label style={{...sL,fontSize:10}}>Code *</label><input value={newBC.code} onChange={e=>setNewBC(p=>({...p,code:e.target.value.toUpperCase()}))} placeholder="BND" style={{...sI,fontFamily:"monospace",textTransform:"uppercase"}}/></div>
             <div><label style={{...sL,fontSize:10}}>Name *</label><input value={newBC.name} onChange={e=>setNewBC(p=>({...p,name:e.target.value}))} placeholder="Bereitschaft Neuburg" style={sI}/></div>
             <div><label style={{...sL,fontSize:10}}>Kürzel</label><input value={newBC.short} onChange={e=>setNewBC(p=>({...p,short:e.target.value}))} placeholder="ND" style={sI}/></div>
+            <div><label style={{...sL,fontSize:10}}>BRK.id Gruppe</label><input value={newBC.brk_id_group} onChange={e=>setNewBC(p=>({...p,brk_id_group:e.target.value.replace(/\D/g,"")}))} placeholder="7013301" style={{...sI,fontFamily:"monospace"}} title="Gliederungsnummer aus BRK.id (z.B. 7013301 = OG Neuburg)"/></div>
             <button onClick={addBC} disabled={saving||!newBC.code.trim()||!newBC.name.trim()} style={{padding:"9px 16px",background:newBC.code.trim()&&newBC.name.trim()?"#2e7d32":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",height:38}}>+ Hinzufügen</button>
           </div>
-          <div style={{fontSize:10,color:"#888",marginTop:6}}>Code = Eindeutiger Identifier (z.B. BSOB, BND, KBL). Name = Voller Name.</div>
+          <div style={{fontSize:10,color:"#888",marginTop:6}}>Code = Eindeutiger Identifier (z.B. BSOB). BRK.id Gruppe = Gliederungsnummer aus BRK.id <code>member</code>-Claim (z.B. <code>7013301</code>). Kann später geändert werden.</div>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",marginTop:24}}>
           <button onClick={()=>setStep(1)} style={{padding:"10px 20px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,fontSize:13,cursor:"pointer",fontFamily:FONT.sans}}>← Zurück</button>
