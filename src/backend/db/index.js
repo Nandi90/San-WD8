@@ -83,7 +83,7 @@ function init() {
 
   // Nextcloud Defaults
   const cfgIns = getDb().prepare("INSERT OR IGNORE INTO app_config (key, value) VALUES (?, ?)");
-  cfgIns.run("nextcloud_url", "https://office.brkndsob.org");
+  cfgIns.run("nextcloud_url", "");
   cfgIns.run("nextcloud_base_path", "Verwaltung Bereitschaft $bereitschaft/SanWD");
   cfgIns.run("nextcloud_enabled", "false");
   cfgIns.run("nextcloud_subfolder", "$auftragsnr - $veranstaltung");
@@ -115,10 +115,10 @@ function migrate() {
       code TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       short TEXT NOT NULL,
-      kv_name TEXT DEFAULT 'Kreisverband Neuburg-Schrobenhausen',
-      kgf TEXT DEFAULT 'Robert Augustin',
-      kv_adresse TEXT DEFAULT 'Karl Konrad Str. 3',
-      kv_plz_ort TEXT DEFAULT '86633 Neuburg',
+      kv_name TEXT DEFAULT '',
+      kgf TEXT DEFAULT '',
+      kv_adresse TEXT DEFAULT '',
+      kv_plz_ort TEXT DEFAULT '',
       leiter_name TEXT DEFAULT '',
       leiter_title TEXT DEFAULT 'Bereitschaftsleiter',
       telefon TEXT DEFAULT '',
@@ -133,22 +133,22 @@ function migrate() {
     -- ── Kostensätze (pro Bereitschaft) ──────────────────────────
     CREATE TABLE IF NOT EXISTS kostensaetze (
       bereitschaft_code TEXT PRIMARY KEY REFERENCES bereitschaften(code),
-      helfer REAL DEFAULT 14,
-      ktw REAL DEFAULT 125,
-      rtw REAL DEFAULT 155,
-      gktw REAL DEFAULT 105,
-      einsatzleiter REAL DEFAULT 14,
-      einsatzleiter_kfz REAL DEFAULT 155,
-      seg_lkw REAL DEFAULT 125,
-      mtw REAL DEFAULT 50,
-      zelt REAL DEFAULT 60,
-      km_ktw REAL DEFAULT 0.4,
-      km_rtw REAL DEFAULT 0.4,
-      km_gktw REAL DEFAULT 0.4,
-      km_el_kfz REAL DEFAULT 0.6,
-      km_seg_lkw REAL DEFAULT 0.6,
-      km_mtw REAL DEFAULT 0.4,
-      verpflegung REAL DEFAULT 17,
+      helfer REAL DEFAULT 0,
+      ktw REAL DEFAULT 0,
+      rtw REAL DEFAULT 0,
+      gktw REAL DEFAULT 0,
+      einsatzleiter REAL DEFAULT 0,
+      einsatzleiter_kfz REAL DEFAULT 0,
+      seg_lkw REAL DEFAULT 0,
+      mtw REAL DEFAULT 0,
+      zelt REAL DEFAULT 0,
+      km_ktw REAL DEFAULT 0,
+      km_rtw REAL DEFAULT 0,
+      km_gktw REAL DEFAULT 0,
+      km_el_kfz REAL DEFAULT 0,
+      km_seg_lkw REAL DEFAULT 0,
+      km_mtw REAL DEFAULT 0,
+      verpflegung REAL DEFAULT 0,
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
@@ -286,30 +286,10 @@ function migrate() {
 }
 
 function seedDefaults() {
+  // v8: Keine Bereitschaften seeden – werden über Einstellungen oder OIDC-Gruppen angelegt
   const count = db.prepare("SELECT COUNT(*) as c FROM bereitschaften").get().c;
   if (count > 0) return;
-
-  console.log("🌱 Seed: Bereitschaften + Kostensätze...");
-  const bereitschaften = [
-    { code: "KBL", name: "Kreisbereitschaftsleitung", short: "KBL" },
-    { code: "BSOB", name: "Bereitschaft Schrobenhausen", short: "SOB" },
-    { code: "BND", name: "Bereitschaft Neuburg", short: "ND" },
-    { code: "BKAHU", name: "Bereitschaft Karlshuld", short: "KAHU" },
-    { code: "BKK", name: "Bereitschaft Karlskron", short: "KK" },
-    { code: "BBGH", name: "Bereitschaft Burgheim", short: "BGH" },
-    { code: "BWEIG", name: "Bereitschaft Weichering", short: "WEIG" },
-  ];
-
-  const insertB = db.prepare("INSERT OR IGNORE INTO bereitschaften (code, name, short) VALUES (?,?,?)");
-  const insertK = db.prepare("INSERT OR IGNORE INTO kostensaetze (bereitschaft_code) VALUES (?)");
-
-  const tx = db.transaction(() => {
-    for (const b of bereitschaften) {
-      insertB.run(b.code, b.name, b.short);
-      insertK.run(b.code);
-    }
-  });
-  tx();
+  console.log("ℹ️  Leere Datenbank – Bereitschaften müssen über die GUI angelegt werden.");
 }
 
 // ── Audit ────────────────────────────────────────────────────────

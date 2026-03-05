@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- * BRK Sanitätswachdienst v6 — Server
+ * SanWD v8 — Server
  * ═══════════════════════════════════════════════════════════════════
  */
 
@@ -300,7 +300,7 @@ app.get("/api/health", (req, res) => {
 // ── Auth Routes (kein Auth nötig) ────────────────────────────────
 
 // === Public Anfrage-Formular (kein Auth) ===
-// PLZ → Bereitschaft Zuordnung (Landkreis Neuburg-Schrobenhausen)
+
 const PLZ_BC_MAP = {
   "85123": "BKK",     // Karlskron
   "86529": "BSOB",    // Schrobenhausen
@@ -334,16 +334,16 @@ app.get("/anfrage", (req, res) => {
   const embed = req.query.embed === "1";
   // CSP Override: Inline-Script erlauben + frame-ancestors für Einbettung
   const framePolicy = embed
-    ? "frame-ancestors 'self' https://www.kvndsob.brk.de https://kvndsob.brk.de"
+    ? "frame-ancestors 'self'"  // v8: embed_allowed_origins aus app_config
     : "frame-ancestors 'self'";
   res.setHeader("Content-Security-Policy", `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; ${framePolicy}; object-src 'none'`);
   if (embed) res.removeHeader("X-Frame-Options");
   const stamm = db.getDb().prepare("SELECT * FROM bereitschaften LIMIT 1").get() || {};
   const ROT = "#E60005";
   const BLAU = "#002F5F";
-  const kvName = stamm.kv_name || "BRK Kreisverband Neuburg-Schrobenhausen";
-  const fertigUrl = stamm.fertig_url || "https://www.kvndsob.brk.de/ehrenamt.html";
-  const dsUrl = stamm.datenschutz_url || "https://www.kvndsob.brk.de/footer-menue-deutsch/service/datenschutz-1.html";
+  const kvName = stamm.kv_name || "Kreisverband";
+  const fertigUrl = stamm.fertig_url || "";
+  const dsUrl = stamm.datenschutz_url || "";
   let logoTag = '<svg width="48" height="48" viewBox="0 0 100 100" fill="none"><rect x="35" y="5" width="30" height="90" rx="2" fill="' + ROT + '"/><rect x="5" y="35" width="90" height="30" rx="2" fill="' + ROT + '"/></svg>';
   if (stamm.logo) {
     try {
@@ -418,7 +418,7 @@ body.embed .btn{font-size:14px;padding:10px 24px}
       <label><span>Adresse / Gel\u00e4nde</span><input name="adresse"></label>
     </div>
     <div class="row">
-      <label><span>PLZ des Veranstaltungsorts</span><input type="text" name="plz" id="plzInput" maxlength="5" pattern="[0-9]{5}" placeholder="z.B. 86633" oninput="checkPLZ(this.value)"><div id="plzHint" style="font-size:10px;margin-top:3px;min-height:16px"></div></label>
+      <label><span>PLZ des Veranstaltungsorts</span><input type="text" name="plz" id="plzInput" maxlength="5" pattern="[0-9]{5}" placeholder="z.B. 12345" oninput="checkPLZ(this.value)"><div id="plzHint" style="font-size:10px;margin-top:3px;min-height:16px"></div></label>
       <label><span>Erwartete Besucherzahl</span><input type="number" name="besucher" min="0" placeholder="z.B. 1000"></label>
       <label><span>Art der Veranstaltung</span>
         <select name="art"><option value="">Bitte w\u00e4hlen...</option>
@@ -456,7 +456,7 @@ body.embed .btn{font-size:14px;padding:10px 24px}
     <label><span>Stra\u00dfe / Hausnummer</span><input name="reStrasse" placeholder="z.B. Musterstra\u00dfe 12"></label>
     <div class="row">
       <label><span>PLZ</span><input name="rePlz" maxlength="5" placeholder="z.B. 86529"></label>
-      <label><span>Ort</span><input name="reOrt" placeholder="z.B. Schrobenhausen"></label>
+      <label><span>Ort</span><input name="reOrt" placeholder="z.B. Musterstadt"></label>
     </div>
     <label><span>Bemerkung / besondere Anforderungen</span><textarea name="bemerkung" placeholder="z.B. Auflagen der Beh\u00f6rde, Gel\u00e4ndebesonderheiten..."></textarea></label>
 
@@ -599,8 +599,8 @@ app.post("/api/anfrage", express.json(), (req, res) => {
         // 2. Bestätigungsmail an Anfragenden
         const sendConfirm = getConfig("smtp_anfrage_confirm", "true");
         if (sendConfirm === "true" && email) {
-          const fromName = getConfig("smtp_from_name", "BRK Sanitätswachdienst");
-          const kvName = (db.getDb().prepare("SELECT kv_name FROM bereitschaften LIMIT 1").get() || {}).kv_name || "BRK Kreisverband";
+          const fromName = getConfig("smtp_from_name", "Sanitätswachdienst");
+          const kvName = (db.getDb().prepare("SELECT kv_name FROM bereitschaften LIMIT 1").get() || {}).kv_name || "Kreisverband";
           await smtp.sendMail({
             to: email,
             subject: `Ihre Anfrage: ${name} – Eingangsbestätigung`,
@@ -939,7 +939,7 @@ ${beschreibung}`;
       body: JSON.stringify({
         title: "[SanWD " + (kategorie === "bug" ? "Bug" : "Feature") + "] " + betreff,
         group_id: 8,
-        customer_id: "guess:" + (user.email || "sanwd@brkndsob.org"),
+        customer_id: "guess:" + (user.email || "sanwd@example.org"),
         priority_id: prioId,
         tags: "sanwd," + tag,
         article: { subject: betreff, body: body, type: "note", internal: false, content_type: "text/plain" }
@@ -1613,7 +1613,7 @@ app.post("/api/pdf/angebot/:id", requireAuth, async (req, res) => {
     const html = buildAngebotHTML(vorgang.event || {}, dayCalcs || [], totalCosts || 0, activeDays || [], stamm, kosten, user);
 
 
-    const pdf = await BrowserPool.renderPDF(html, { marginTop: "20mm", marginLeft: "12mm", header: `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Fortsetzung Angebot</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`, footer: `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>BRK Sanitätswachdienst · Kostenaufstellung</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>` });
+    const pdf = await BrowserPool.renderPDF(html, { marginTop: "20mm", marginLeft: "12mm", header: `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Fortsetzung Angebot</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`, footer: `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Sanitätswachdienst · Kostenaufstellung</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>` });
 
     const nr = (vorgang.event?.auftragsnr || req.params.id).replace(/[^a-zA-Z0-9_-]/g,"_");
     res.set({ "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${nr}_Angebot.pdf"` });
@@ -1662,8 +1662,8 @@ app.post("/api/pdf/mappe/:id", requireAuth, async (req, res) => {
     const { dayCalcs, totalCosts, activeDays } = req.body;
 
     const browser = await BrowserPool.get();
-    const footerTpl = `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Angebotsmappe · BRK Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>`;
-    const headerTpl = `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Angebotsmappe · BRK Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`;
+    const footerTpl = `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Angebotsmappe · Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>`;
+    const headerTpl = `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Angebotsmappe · Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`;
     const pdfOpts = (marginLeft="12mm") => ({ format: "A4", margin: { top: "18mm", right: "12mm", bottom: "20mm", left: marginLeft }, displayHeaderFooter: true, headerTemplate: headerTpl, footerTemplate: footerTpl, printBackground: true });
 
     const renderHTML = async (html, ml="12mm") => {
@@ -1816,7 +1816,7 @@ function buildEinsatzprotokollHTML(vorgang, stamm, dayIdx) {
     <span style="font-size:14px;">${esc(ev.auftragsnr||"")}</span>
   </td>
   <td style="width:33%;font-size:13px;">
-    <strong>BRK Kreisverband Neuburg-Schrobenhausen</strong><br/>
+    <strong>Kreisverband</strong><br/>
     ${esc(stamm.name||"BRK Bereitschaft")}
   </td>
 </tr>
@@ -1945,7 +1945,7 @@ app.post("/api/pdf/angebot/:id", requireAuth, async (req, res) => {
     const html = buildAngebotHTML(vorgang.event || {}, dayCalcs || [], totalCosts || 0, activeDays || [], stamm, kosten, user);
 
 
-    const pdf = await BrowserPool.renderPDF(html, { marginTop: "20mm", marginLeft: "12mm", header: `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Fortsetzung Angebot</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`, footer: `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>BRK Sanitätswachdienst · Kostenaufstellung</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>` });
+    const pdf = await BrowserPool.renderPDF(html, { marginTop: "20mm", marginLeft: "12mm", header: `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Fortsetzung Angebot</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`, footer: `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Sanitätswachdienst · Kostenaufstellung</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>` });
 
     const nr = (vorgang.event?.auftragsnr || req.params.id).replace(/[^a-zA-Z0-9_-]/g,"_");
     res.set({ "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${nr}_Angebot.pdf"` });
@@ -1992,8 +1992,8 @@ app.post("/api/pdf/mappe/:id", requireAuth, async (req, res) => {
     const { dayCalcs, totalCosts, activeDays } = req.body;
 
     const browser = await BrowserPool.get();
-    const footerTpl = `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Angebotsmappe · BRK Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>`;
-    const headerTpl = `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Angebotsmappe · BRK Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`;
+    const footerTpl = `<div style="width:100%;padding:0 12mm;font-family:Arial,sans-serif;font-size:7pt;color:#999;display:flex;justify-content:space-between;border-top:0.5px solid #ddd;padding-top:2mm"><span>Angebotsmappe · Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span><span>Seite <span class="pageNumber"></span>/<span class="totalPages"></span></span></div>`;
+    const headerTpl = `<div style="width:100%;padding:2mm 12mm 0;font-family:Arial,sans-serif;font-size:7.5pt;color:#888;display:flex;justify-content:space-between"><span>Angebotsmappe · Sanitätswachdienst</span><span>${(vorgang.event?.auftragsnr||"").replace(/"/g,"&quot;")}</span></div>`;
     const pdfOpts = (marginLeft="12mm") => ({ format: "A4", margin: { top: "18mm", right: "12mm", bottom: "20mm", left: marginLeft }, displayHeaderFooter: true, headerTemplate: headerTpl, footerTemplate: footerTpl, printBackground: true });
 
     const renderHTML = async (html, ml="12mm") => {
@@ -2199,7 +2199,7 @@ function buildDeckblattHTML(ev, activeDays, stamm, user, includeDocs) {
     </div>
 
     <!-- Organisation -->
-    <div style="font-size:10pt;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Bayerisches Rotes Kreuz</div>
+    <div style="font-size:10pt;color:#666;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">${esc(stamm.kv_name||"")}</div>
     <div style="font-size:13pt;color:#333;font-weight:600;margin-bottom:4px">${kvName}</div>
     <div style="font-size:11pt;color:${ROT};font-weight:700;margin-bottom:40px">${berName}</div>
 
@@ -2336,7 +2336,7 @@ function buildAngebotHTML(ev, dayCalcs, totalCosts, activeDays, stamm, kosten, u
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
       <div>
         <div style="font-size:16pt;font-weight:bold;margin-bottom:4px">${berName}</div>
-        <div style="font-size:8pt;color:#444">Bayerisches Rotes Kreuz · ${berName}</div>
+        <div style="font-size:8pt;color:#444">${esc(stamm.kv_name||"")} · ${berName}</div>
         <div style="height:17mm"></div>
         <div style="font-size:10pt;line-height:1.6">
           <div style="font-weight:bold">${esc(ev.rechnungsempfaenger||ev.veranstalter||"")}</div>
