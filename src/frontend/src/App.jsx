@@ -735,13 +735,127 @@ function StatistikDashboard({user,year:appYear,toast,bereitschaften=[]}){
   </div>);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LOKALE BENUTZERVERWALTUNG
+// ═══════════════════════════════════════════════════════════════════════════
+const ROLLEN_LABEL={admin:"Admin",kbl:"KBL",bl:"BL",se:"SE",helfer:"Helfer"};
+const ROLLEN_COLOR={admin:"#c62828",kbl:"#e65100",bl:"#1565c0",se:"#1b5e20",helfer:"#555"};
+
+function LocalUserAdmin({toast,bereitschaften=[]}){
+  const [users,setUsers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showNew,setShowNew]=useState(false);
+  const [editUser,setEditUser]=useState(null);
+  const [pwModal,setPwModal]=useState(null);
+  const [newPw,setNewPw]=useState("");
+  const [form,setForm]=useState({username:"",name:"",email:"",password:"",rolle:"helfer",bereitschaft_code:"",active:1});
+
+  const load=()=>{setLoading(true);fetch("/api/admin/local-users",{credentials:"include"}).then(r=>r.json()).then(d=>{setUsers(Array.isArray(d)?d:[]);}).catch(()=>setUsers([])).finally(()=>setLoading(false));};
+  useEffect(()=>{load();},[]);
+
+  const save=async()=>{
+    if(!form.username||!form.name||(showNew&&!form.password)){toast("Pflichtfelder ausfüllen","warning");return;}
+    try{
+      if(showNew){
+        await fetch("/api/admin/local-users",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify(form)});
+        toast("Benutzer angelegt","success");
+      } else {
+        await fetch("/api/admin/local-users/"+editUser.id,{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify(form)});
+        toast("Benutzer gespeichert","success");
+      }
+      setShowNew(false);setEditUser(null);load();
+    }catch(e){toast("Fehler: "+e.message,"error");}
+  };
+
+  const del=async(u)=>{if(!window.confirm("Benutzer ""+u.name+"" löschen?"))return;
+    await fetch("/api/admin/local-users/"+u.id,{method:"DELETE",credentials:"include"});toast("Gelöscht","success");load();};
+
+  const savePw=async()=>{
+    if(!newPw||newPw.length<6){toast("Mind. 6 Zeichen","warning");return;}
+    await fetch("/api/admin/local-users/"+pwModal.id+"/password",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({password:newPw})});
+    toast("Passwort gesetzt","success");setPwModal(null);setNewPw("");
+  };
+
+  const startEdit=(u)=>{setForm({username:u.username,name:u.name,email:u.email||"",password:"",rolle:u.rolle,bereitschaft_code:u.bereitschaft_code||"",active:u.active});setEditUser(u);setShowNew(false);};
+  const startNew=()=>{setForm({username:"",name:"",email:"",password:"",rolle:"helfer",bereitschaft_code:"",active:1});setEditUser(null);setShowNew(true);};
+
+  const FormModal=({title,onSave,onClose})=>(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:10001,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div style={{background:C.weiss,borderRadius:8,padding:"24px 28px",width:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px #0003"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:18}}><h3 style={{margin:0,fontSize:15,fontWeight:700}}>{title}</h3><span onClick={onClose} style={{cursor:"pointer",fontSize:20,color:C.bgrau}}>✕</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
+        <Inp label="Benutzername *" value={form.username} onChange={v=>setForm(p=>({...p,username:v}))} disabled={!!editUser} placeholder="max.mustermann"/>
+        <Inp label="Anzeigename *" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="Max Mustermann"/>
+        <Inp label="E-Mail" value={form.email} onChange={v=>setForm(p=>({...p,email:v}))} placeholder="max@brk.de"/>
+        {showNew&&<Inp label="Passwort *" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="Mind. 6 Zeichen"/>}
+        <Sel label="Rolle" value={form.rolle} onChange={v=>setForm(p=>({...p,rolle:v}))} options={Object.entries(ROLLEN_LABEL).map(([v,l])=>({value:v,label:l}))}/>
+        <Sel label="Bereitschaft" value={form.bereitschaft_code||""} onChange={v=>setForm(p=>({...p,bereitschaft_code:v}))} options={[{value:"",label:"— keine —"},...bereitschaften.map(b=>({value:b.code,label:b.name+" ("+b.short+")"}))] }/>
+      </div>
+      {editUser&&<label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8,cursor:"pointer"}}><input type="checkbox" checked={!!form.active} onChange={e=>setForm(p=>({...p,active:e.target.checked?1:0}))}/> Aktiv</label>}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:18}}>
+        <Btn onClick={onClose} variant="secondary">Abbrechen</Btn>
+        <Btn onClick={onSave} variant="primary">Speichern</Btn>
+      </div>
+    </div>
+  </div>);
+
+  return(<div style={{maxWidth:800}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div>
+        <h3 style={{margin:0,fontSize:15,fontWeight:700,color:C.dunkelgrau}}>Lokale Benutzer</h3>
+        <div style={{fontSize:11,color:C.bgrau,marginTop:2}}>Für Instanzen ohne OIDC/Keycloak. Passwort-basierte Anmeldung.</div>
+      </div>
+      <Btn onClick={startNew} icon="➕" variant="primary" small>Neuer Benutzer</Btn>
+    </div>
+
+    {loading?<div style={{textAlign:"center",padding:40,color:C.bgrau}}>Laden...</div>:(
+      users.length===0
+        ?<div style={{textAlign:"center",padding:40,color:C.bgrau,border:`2px dashed ${C.mittelgrau}`,borderRadius:8}}>Noch keine lokalen Benutzer angelegt.</div>
+        :<div style={{background:C.weiss,borderRadius:8,border:`1px solid ${C.mittelgrau}40`,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:C.hellgrau}}>
+              {["Benutzername","Name","E-Mail","Rolle","Bereitschaft","Aktiv",""].map((h,i)=><th key={i} style={{padding:"8px 10px",textAlign:"left",borderBottom:`2px solid ${C.mittelgrau}40`,fontSize:10,color:C.dunkelgrau,fontWeight:700,textTransform:"uppercase"}}>{h}</th>)}
+            </tr></thead>
+            <tbody>{users.map(u=><tr key={u.id} style={{borderBottom:`1px solid ${C.hellgrau}`}}>
+              <td style={{padding:"7px 10px",fontFamily:FONT.mono,fontWeight:600}}>{u.username}</td>
+              <td style={{padding:"7px 10px"}}>{u.name}</td>
+              <td style={{padding:"7px 10px",color:C.bgrau}}>{u.email||"—"}</td>
+              <td style={{padding:"7px 10px"}}><span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:10,background:(ROLLEN_COLOR[u.rolle]||"#555")+"22",color:ROLLEN_COLOR[u.rolle]||"#555"}}>{ROLLEN_LABEL[u.rolle]||u.rolle}</span></td>
+              <td style={{padding:"7px 10px"}}>{u.bereitschaft_name?<span style={{fontSize:10,background:C.hellblau,color:C.dunkelblau,padding:"2px 6px",borderRadius:4,fontWeight:600}}>{u.bereitschaft_short||u.bereitschaft_code}</span>:<span style={{color:C.bgrau}}>—</span>}</td>
+              <td style={{padding:"7px 10px",textAlign:"center"}}>{u.active?<span style={{color:"#1a7a3a",fontWeight:700}}>✓</span>:<span style={{color:C.bgrau}}>✗</span>}</td>
+              <td style={{padding:"7px 8px",textAlign:"right",whiteSpace:"nowrap"}}>
+                <Btn onClick={()=>setPwModal(u)} variant="secondary" small>🔑</Btn>
+                {" "}<Btn onClick={()=>startEdit(u)} variant="secondary" small>✏️</Btn>
+                {" "}<Btn onClick={()=>del(u)} variant="secondary" small style={{color:C.rot}}>🗑️</Btn>
+              </td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+    )}
+
+    {(showNew||editUser)&&<FormModal title={showNew?"Neuer Benutzer":"Benutzer bearbeiten"} onSave={save} onClose={()=>{setShowNew(false);setEditUser(null);}}/>}
+    {pwModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:10001,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget){setPwModal(null);setNewPw("");}}}>
+      <div style={{background:C.weiss,borderRadius:8,padding:"24px 28px",width:360,boxShadow:"0 8px 32px #0003"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}><h3 style={{margin:0,fontSize:15,fontWeight:700}}>Passwort für {pwModal.name}</h3><span onClick={()=>{setPwModal(null);setNewPw("");}} style={{cursor:"pointer",fontSize:20,color:C.bgrau}}>✕</span></div>
+        <Inp label="Neues Passwort (mind. 6 Zeichen)" value={newPw} onChange={setNewPw} placeholder="Neues Passwort"/>
+        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:12}}>
+          <Btn onClick={()=>{setPwModal(null);setNewPw("");}} variant="secondary">Abbrechen</Btn>
+          <Btn onClick={savePw} variant="primary">Setzen</Btn>
+        </div>
+      </div>
+    </div>}
+  </div>);
+}
+
 function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln,klauselnEdit,setKlauselnEdit,klauselnSaving,saveKlauseln,bereitschaft,reloadStammdaten,bereitschaften=[]}){
   const [sub,setSub]=useState("org");
   const [oidcLabel,setOidcLabel]=useState("");
   const [oidcLabelSaving,setOidcLabelSaving]=useState(false);
   useEffect(()=>{fetch("/api/public/appinfo").then(r=>r.json()).then(d=>setOidcLabel(d.oidc_label||"Mit OIDC anmelden")).catch(()=>{});},[]);
   const saveOidcLabel=async()=>{setOidcLabelSaving(true);try{await fetch("/api/config/oidc-label",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({label:oidcLabel})});toast("Login-Beschriftung gespeichert","success");}catch(e){toast("Fehler: "+e.message,"error");}setOidcLabelSaving(false);};
-  const subs=[{id:"org",label:"Organisation",icon:"🏢"},{id:"bereitschaften",label:"Bereitschaften",icon:"🏥"},{id:"kosten",label:"Kostensätze",icon:"💰"},{id:"klauseln",label:"Textvorlagen",icon:"📝"},{id:"nextcloud",label:"Nextcloud",icon:"☁️"},{id:"email",label:"E-Mail",icon:"✉️"}];
+  const [authMode,setAuthMode]=useState("oidc");
+  useEffect(()=>{fetch("/api/public/appinfo").then(r=>r.json()).then(d=>setAuthMode(d.auth_mode||"oidc")).catch(()=>{});},[]);
+  const saveAuthMode=async(m)=>{setAuthMode(m);try{await fetch("/api/config/auth-mode",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({mode:m})});toast("Auth-Modus gespeichert","success");}catch(e){toast("Fehler","error");}};
+  const subs=[{id:"org",label:"Organisation",icon:"🏢"},{id:"bereitschaften",label:"Bereitschaften",icon:"🏥"},{id:"benutzer",label:"Benutzer",icon:"👤"},{id:"kosten",label:"Kostensätze",icon:"💰"},{id:"klauseln",label:"Textvorlagen",icon:"📝"},{id:"nextcloud",label:"Nextcloud",icon:"☁️"},{id:"email",label:"E-Mail",icon:"✉️"}];
   return(<div>
     <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap"}}>
       {subs.map(s=><button key={s.id} onClick={()=>setSub(s.id)} style={{padding:"7px 14px",background:sub===s.id?C.rot:"#fff",color:sub===s.id?"#fff":C.dunkelgrau,border:`1px solid ${sub===s.id?C.rot:C.mittelgrau}`,borderRadius:6,fontSize:12,fontWeight:sub===s.id?700:500,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:13}}>{s.icon}</span>{s.label}</button>)}
@@ -766,6 +880,14 @@ function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln
         <Inp label="Anmelde-Button Beschriftung" value={oidcLabel} onChange={setOidcLabel} placeholder="Mit OIDC anmelden"/>
         <div style={{fontSize:11,color:C.bgrau,marginBottom:10}}>Wird auf der Login-Seite als Button-Text angezeigt. Z.B. „Mit BRK.id anmelden" oder „Mit Keycloak anmelden".</div>
         <Btn onClick={saveOidcLabel} variant="primary" disabled={oidcLabelSaving} small>{oidcLabelSaving?"Speichern...":"Speichern"}</Btn>
+        <div style={{marginTop:18,borderTop:`1px solid ${C.mittelgrau}40`,paddingTop:16}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.dunkelgrau,marginBottom:8}}>Authentifizierungs-Modus</div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={()=>saveAuthMode("oidc")} variant={authMode==="oidc"?"primary":"secondary"} small>🔑 OIDC / Keycloak</Btn>
+            <Btn onClick={()=>saveAuthMode("local")} variant={authMode==="local"?"primary":"secondary"} small>👤 Lokale Benutzer</Btn>
+          </div>
+          <div style={{fontSize:11,color:C.bgrau,marginTop:6}}>{authMode==="local"?"Benutzer werden lokal mit Passwort verwaltet (Tab Benutzer).":"Single Sign-On über externen Identity Provider."}</div>
+        </div>
       </Card>
       <div style={{padding:"14px 16px",background:"#e8eaf6",borderRadius:8,border:"1px solid #c5cae9",marginTop:8}}>
         <div style={{fontSize:12,color:"#3949ab"}}>🏥 <strong>Bereitschaftsdaten</strong> (Leiter, E-Mail, Telefon) werden jetzt im Tab <button onClick={()=>setSub("bereitschaften")} style={{background:"none",border:"none",color:C.mittelblau,fontWeight:700,cursor:"pointer",textDecoration:"underline",fontSize:12,fontFamily:FONT.sans,padding:0}}>Bereitschaften</button> verwaltet.</div>
@@ -773,6 +895,8 @@ function EinstellungenTab({stammdaten,updateStamm,updateRate,user,toast,klauseln
     </div>}
 
     {sub==="bereitschaften"&&<BereitschaftenAdmin toast={toast} userBC={user?.bereitschaftCode} reloadStammdaten={reloadStammdaten}/>}
+
+    {sub==="benutzer"&&<LocalUserAdmin toast={toast} bereitschaften={bereitschaften}/>}
 
     {sub==="kosten"&&<div style={{maxWidth:600}}>
       <Card title="Kostensätze (EUR)" accent="#d4920a"><div className="rg2" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 10px"}}>{[["Helfer (€/Std)","helfer"],["KTW","ktw"],["RTW","rtw"],["GKTW","gktw"],["EL (€/Std)","einsatzleiter"],["EL-KFZ","einsatzleiterKfz"],["SEG-LKW","segLkw"],["MTW","mtw"],["Zelt","zelt"],["Verpfl. (€/P/8h)","verpflegung"]].map(([l,k])=><Inp key={k} small label={l} type="number" min={0} step={0.5} value={stammdaten.rates[k]} onChange={v=>updateRate(k,v)}/>)}</div></Card>
@@ -2515,6 +2639,69 @@ function VorgaengeListe({bereitschaftCode,user,onLoad,onNew,onCopy,bereitschaft,
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOGIN PAGE
+// ═══════════════════════════════════════════════════════════════════════════
+function LoginPage({appInfo}){
+  const [localUser,setLocalUser]=useState("");
+  const [localPass,setLocalPass]=useState("");
+  const [localError,setLocalError]=useState("");
+  const [logging,setLogging]=useState(false);
+  const isLocal=appInfo.auth_mode==="local";
+
+  const doLocalLogin=async()=>{
+    if(!localUser||!localPass){setLocalError("Benutzername und Passwort eingeben");return;}
+    setLogging(true);setLocalError("");
+    try{
+      const r=await fetch("/auth/local-login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({username:localUser,password:localPass})});
+      if(r.ok){window.location.reload();}
+      else{const d=await r.json();setLocalError(d.error||"Login fehlgeschlagen");}
+    }catch(e){setLocalError("Verbindungsfehler");}
+    setLogging(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:C.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT.sans}}>
+      <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+      <div style={{width:440,padding:40}}>
+        {/* Logo & Header */}
+        <div style={{textAlign:"center",marginBottom:32}}>
+          {appInfo.logo
+            ?<img src={appInfo.logo} alt="Logo" style={{height:100,width:"auto",display:"block",margin:"0 auto 12px"}}/>
+            :<BRKLogo size={80} full customLogo={null}/>
+          }
+          <h1 style={{margin:"12px 0 4px",fontSize:20,fontWeight:800,color:C.schwarz}}>{appInfo.kv_name||"SanWD"}</h1>
+          <p style={{margin:0,fontSize:13,color:C.dunkelgrau}}>Sanitätswachdienst · Kalkulation und Abrechnung</p>
+        </div>
+
+        {/* Lokaler Login */}
+        {isLocal&&(
+          <div style={{background:C.weiss,borderRadius:8,border:`1px solid ${C.mittelgrau}40`,borderTop:`3px solid ${C.rot}`,padding:"18px 22px",marginBottom:12,boxShadow:"0 1px 4px #0001"}}>
+            <div style={{marginBottom:14}}>
+              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:3,fontWeight:600}}>Benutzername</label>
+              <input value={localUser} onChange={e=>setLocalUser(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Benutzername" style={{width:"100%",padding:"9px 10px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans}} autoFocus/>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{display:"block",fontSize:11,color:C.dunkelgrau,marginBottom:3,fontWeight:600}}>Passwort</label>
+              <input type="password" value={localPass} onChange={e=>setLocalPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLocalLogin()} placeholder="Passwort" style={{width:"100%",padding:"9px 10px",border:`1px solid ${C.mittelgrau}`,borderRadius:4,fontSize:13,boxSizing:"border-box",fontFamily:FONT.sans}}/>
+            </div>
+            {localError&&<div style={{padding:"8px 12px",background:"#fce4e4",border:"1px solid #f5c6c6",borderRadius:4,color:"#c62828",fontSize:12,marginBottom:12}}>{localError}</div>}
+            <button onClick={doLocalLogin} disabled={logging} style={{width:"100%",padding:"12px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:14,fontWeight:700,cursor:logging?"not-allowed":"pointer",fontFamily:FONT.sans,opacity:logging?0.7:1}}>{logging?"Anmelden...":"Anmelden"}</button>
+          </div>
+        )}
+
+        {/* OIDC Login */}
+        {!isLocal&&(
+          <div style={{background:C.weiss,borderRadius:8,border:`1px solid ${C.mittelgrau}40`,borderTop:`3px solid ${C.rot}`,padding:"18px 22px",boxShadow:"0 1px 4px #0001"}}>
+            <button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><BRKLogo size={22}/>{appInfo.oidc_label||"Anmelden"}</button>
+            <p style={{textAlign:"center",fontSize:11,color:C.dunkelgrau,margin:"8px 0 0"}}>Single Sign-On über OIDC / Keycloak</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FEEDBACK BUTTON + MODAL
 // ═══════════════════════════════════════════════════════════════════════════
 function FeedbackButton({user,currentView,toast}){
@@ -3006,7 +3193,7 @@ export default function App(){
   const [showKompModal,setShowKompModal]=useState(false);
   const [stammdatenLoaded,setStammdatenLoaded]=useState(false);
   const [kvCoords,setKvCoords]=useState(null);
-  const [appInfo,setAppInfo]=useState({kv_name:"",oidc_label:"Anmelden",has_logo:false});
+  const [appInfo,setAppInfo]=useState({kv_name:"",oidc_label:"Anmelden",has_logo:false,auth_mode:"oidc",logo:null});
   useEffect(()=>{fetch("/api/public/appinfo").then(r=>r.json()).then(d=>setAppInfo(d)).catch(()=>{});},[]);
   const printRef=useRef(null);
 
@@ -3144,17 +3331,7 @@ export default function App(){
   const copyEvent=useCallback((ev)=>{setCurrentEventId(null);const e={...EMPTY_EVENT,...(ev.event||{}),auftragsnr:"",checklist:{}};setEvent(e);setDays((ev.days||Array.from({length:8},(_,i)=>mkDay(i+1))).map(d=>({...d,date:""})));setActiveDay(0);setTab("event");},[]);
 
   // LOGIN
-  if(!user)return(
-    <div style={{minHeight:"100vh",background:C.hellgrau,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FONT.sans}}>
-      <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-      <div style={{width:440,padding:40}}>
-        <div style={{textAlign:"center",marginBottom:32}}><BRKLogo size={80} full/><h1 style={{margin:"12px 0 4px",fontSize:20,fontWeight:800,color:C.schwarz}}>{appInfo.kv_name||"SanWD"}</h1><p style={{margin:0,fontSize:13,color:C.dunkelgrau}}>Sanitätswachdienst · Kalkulation und Abrechnung</p></div>
-        <Card accent={C.rot}><button onClick={()=>window.location.href="/auth/login"} style={{width:"100%",padding:"14px 20px",background:C.rot,border:"none",borderRadius:4,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:FONT.sans,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}><BRKLogo size={22}/>{appInfo.oidc_label||"Anmelden"}</button><p style={{textAlign:"center",fontSize:11,color:C.dunkelgrau,margin:"8px 0 0"}}>Single Sign-On über OIDC / Keycloak</p></Card>
-        
-        
-      </div>
-    </div>
-  );
+  if(!user)return(<LoginPage appInfo={appInfo}/>);
 
   // SETUP WIZARD (leere Instanz → Ersteinrichtung)
   if(!setupComplete)return(<SetupWizard user={user} onComplete={()=>{setSetupComplete(true);API.getBereitschaften().then(bcs=>{setBereitschaften(bcs||[]);}).catch(()=>{});reloadStammdaten();}}/>);

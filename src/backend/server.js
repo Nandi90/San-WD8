@@ -302,13 +302,16 @@ app.get("/api/public/appinfo", (req, res) => {
   try {
     const stamm = db.getDb().prepare("SELECT kv_name, logo FROM stammdaten LIMIT 1").get() || {};
     const oidcLabel = db.getConfig("oidc_login_label", "Mit OIDC anmelden");
+    const authMode = db.getConfig("auth_mode", process.env.OIDC_ISSUER ? "oidc" : "local");
     res.json({
       kv_name: stamm.kv_name || "",
       oidc_label: oidcLabel,
-      has_logo: !!stamm.logo
+      has_logo: !!stamm.logo,
+      auth_mode: authMode,
+      logo: stamm.logo ? ("data:image/png;base64," + stamm.logo.toString("base64")) : null
     });
   } catch(e) {
-    res.json({ kv_name: "", oidc_label: "Anmelden", has_logo: false });
+    res.json({ kv_name: "", oidc_label: "Anmelden", has_logo: false, auth_mode: "oidc", logo: null });
   }
 });
 
@@ -1048,6 +1051,13 @@ app.put("/api/config/oidc-label", requireAuth, (req, res) => {
   const { label } = req.body;
   if (typeof label !== "string") return res.status(400).json({ error: "label erforderlich" });
   db.setConfig("oidc_login_label", label.trim() || "Anmelden");
+  res.json({ ok: true });
+});
+
+app.put("/api/config/auth-mode", requireAuth, (req, res) => {
+  const { mode } = req.body;
+  if (!["oidc", "local"].includes(mode)) return res.status(400).json({ error: "Ungültiger Modus" });
+  db.setConfig("auth_mode", mode);
   res.json({ ok: true });
 });
 

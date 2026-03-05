@@ -163,6 +163,20 @@ function migrate() {
       created_at TEXT DEFAULT (datetime('now'))
     );
 
+    -- ── Lokale Benutzer (ohne OIDC) ─────────────────────────────
+    CREATE TABLE IF NOT EXISTS local_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      email TEXT DEFAULT '',
+      password_hash TEXT NOT NULL,
+      rolle TEXT DEFAULT 'helfer',
+      bereitschaft_code TEXT REFERENCES bereitschaften(code),
+      active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
     -- ── Vorgänge ────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS vorgaenge (
       id TEXT PRIMARY KEY,

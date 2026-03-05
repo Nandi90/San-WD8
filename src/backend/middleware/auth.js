@@ -309,6 +309,37 @@ router.get("/status", (req, res) => {
 });
 
 
+// ── Lokaler Login (ohne OIDC) ────────────────────────────────
+router.post("/local-login", async (req, res) => {
+  const bcrypt = require("bcryptjs");
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: "Username und Passwort erforderlich" });
+  try {
+    const db = getDb();
+    const user = db.prepare("SELECT * FROM local_users WHERE username=? AND active=1").get(username.trim());
+    if (!user) return res.status(401).json({ error: "Ungültige Zugangsdaten" });
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      audit({ sub: username, name: username }, "login_failed", "local_user", username, "Falsches Passwort");
+      return res.status(401).json({ error: "Ungültige Zugangsdaten" });
+    }
+    req.session.user = {
+      sub: "local:" + user.id,
+      name: user.name,
+      email: user.email || "",
+      rolle: user.rolle,
+      bereitschaftCode: user.bereitschaft_code || "",
+      authType: "local",
+    };
+    syncUser(req.session.user);
+    audit(req.session.user, "login", "local_user", String(user.id), "Lokaler Login");
+    res.json({ ok: true });
+  } catch(e) {
+    console.error("Local login error:", e);
+    res.status(500).json({ error: "Login fehlgeschlagen" });
+  }
+});
+
 // ── Dev Login GET → Redirect zu /auth/login ─────────────────────
 router.get("/dev-login", (req, res) => {
   res.redirect("/auth/login");

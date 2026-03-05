@@ -128,4 +128,71 @@ router.put("/bereitschaften/:code/brk-id-group", (req, res) => {
   res.json({ ok: true });
 });
 
+// ══════════════════════════════════════════════════════════════
+// LOKALE BENUTZERVERWALTUNG (Lokaler Auth-Modus)
+// ══════════════════════════════════════════════════════════════
+const bcrypt = require("bcryptjs");
+
+// Liste aller lokalen Benutzer
+router.get("/local-users", (req, res) => {
+  const rows = getDb().prepare(`
+    SELECT lu.id, lu.username, lu.name, lu.email, lu.rolle,
+           lu.bereitschaft_code, lu.active, lu.created_at, lu.updated_at,
+           b.name as bereitschaft_name, b.short as bereitschaft_short
+    FROM local_users lu
+    LEFT JOIN bereitschaften b ON lu.bereitschaft_code = b.code
+    ORDER BY lu.name ASC
+  `).all();
+  res.json(rows);
+});
+
+// Benutzer anlegen
+router.post("/local-users", async (req, res) => {
+  const { username, name, email, password, rolle, bereitschaft_code } = req.body || {};
+  if (!username || !name || !password) return res.status(400).json({ error: "Username, Name und Passwort erforderlich" });
+  const validRollen = ["admin", "kbl", "bl", "se", "helfer"];
+  if (rolle && !validRollen.includes(rolle)) return res.status(400).json({ error: "Ungültige Rolle" });
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const result = getDb().prepare(
+      "INSERT INTO local_users (username, name, email, password_hash, rolle, bereitschaft_code) VALUES (?,?,?,?,?,?)"
+    ).run(username.trim(), name.trim(), email || "", hash, rolle || "helfer", bereitschaft_code || null);
+    audit(req.session.user, "create", "local_user", String(result.lastInsertRowid), username);
+    res.json({ ok: true, id: result.lastInsertRowid });
+  } catch(e) {
+    if (e.message?.includes("UNIQUE")) return res.status(409).json({ error: "Benutzername bereits vergeben" });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Benutzer bearbeiten (ohne Passwort)
+router.put("/local-users/:id", (req, res) => {
+  const { name, email, rolle, bereitschaft_code, active } = req.body || {};
+  const validRollen = ["admin", "kbl", "bl", "se", "helfer"];
+  if (rolle && !validRollen.includes(rolle)) return res.status(400).json({ error: "Ungültige Rolle" });
+  getDb().prepare(`
+    UPDATE local_users SET name=?, email=?, rolle=?, bereitschaft_code=?, active=?,
+    updated_at=datetime('now') WHERE id=?
+  `).run(name, email || "", rolle || "helfer", bereitschaft_code || null, active ?? 1, req.params.id);
+  audit(req.session.user, "update", "local_user", req.params.id, `Rolle: ${rolle}`);
+  res.json({ ok: true });
+});
+
+// Passwort zurücksetzen
+router.put("/local-users/:id/password", async (req, res) => {
+  const { password } = req.body || {};
+  if (!password || password.length < 6) return res.status(400).json({ error: "Passwort mind. 6 Zeichen" });
+  const hash = await bcrypt.hash(password, 10);
+  getDb().prepare("UPDATE local_users SET password_hash=?, updated_at=datetime('now') WHERE id=?").run(hash, req.params.id);
+  audit(req.session.user, "password_reset", "local_user", req.params.id, "");
+  res.json({ ok: true });
+});
+
+// Benutzer löschen
+router.delete("/local-users/:id", (req, res) => {
+  getDb().prepare("DELETE FROM local_users WHERE id=?").run(req.params.id);
+  audit(req.session.user, "delete", "local_user", req.params.id, "");
+  res.json({ ok: true });
+});
+
 module.exports = router;
