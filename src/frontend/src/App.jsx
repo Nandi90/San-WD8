@@ -767,7 +767,7 @@ function LocalUserAdmin({toast,bereitschaften=[],authMode="local"}){
     }catch(e){toast("Fehler: "+e.message,"error");}
   };
 
-  const del=async(u)=>{if(!window.confirm("Benutzer ""+u.name+"" löschen?"))return;
+  const del=async(u)=>{if(!window.confirm(`Benutzer "${u.name}" löschen?`))return;
     await fetch("/api/admin/local-users/"+u.id,{method:"DELETE",credentials:"include"});toast("Gelöscht","success");load();};
 
   const savePw=async()=>{
