@@ -741,6 +741,29 @@ function StatistikDashboard({user,year:appYear,toast,bereitschaften=[]}){
 const ROLLEN_LABEL={admin:"Admin",kbl:"KBL",bl:"BL",se:"SE",helfer:"Helfer"};
 const ROLLEN_COLOR={admin:"#c62828",kbl:"#e65100",bl:"#1565c0",se:"#1b5e20",helfer:"#555"};
 
+// FormModal MUSS außerhalb von LocalUserAdmin definiert sein –
+// sonst wird es bei jedem State-Update neu erstellt → Fokus-Verlust nach 1 Buchstabe
+function UserFormModal({title,form,setForm,editUser,showNew,bereitschaften,onSave,onClose}){
+  return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:10001,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div style={{background:C.weiss,borderRadius:8,padding:"24px 28px",width:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px #0003"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:18}}><h3 style={{margin:0,fontSize:15,fontWeight:700}}>{title}</h3><span onClick={onClose} style={{cursor:"pointer",fontSize:20,color:C.bgrau}}>✕</span></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
+        <Inp label="Benutzername *" value={form.username} onChange={v=>setForm(p=>({...p,username:v}))} disabled={!!editUser} placeholder="max.mustermann"/>
+        <Inp label="Anzeigename *" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="Max Mustermann"/>
+        <Inp label="E-Mail" value={form.email} onChange={v=>setForm(p=>({...p,email:v}))} placeholder="max@brk.de"/>
+        {showNew&&<Inp label="Passwort *" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="Mind. 6 Zeichen"/>}
+        <Sel label="Rolle" value={form.rolle} onChange={v=>setForm(p=>({...p,rolle:v}))} options={Object.entries(ROLLEN_LABEL).map(([v,l])=>({value:v,label:l}))}/>
+        <Sel label="Bereitschaft" value={form.bereitschaft_code||""} onChange={v=>setForm(p=>({...p,bereitschaft_code:v}))} options={[{value:"",label:"— keine —"},...bereitschaften.map(b=>({value:b.code,label:b.name+" ("+b.short+")"}))] }/>
+      </div>
+      {editUser&&<label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8,cursor:"pointer"}}><input type="checkbox" checked={!!form.active} onChange={e=>setForm(p=>({...p,active:e.target.checked?1:0}))}/> Aktiv</label>}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:18}}>
+        <Btn onClick={onClose} variant="secondary">Abbrechen</Btn>
+        <Btn onClick={onSave} variant="primary">Speichern</Btn>
+      </div>
+    </div>
+  </div>);
+}
+
 function LocalUserAdmin({toast,bereitschaften=[],authMode="local"}){
   const [users,setUsers]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -778,25 +801,6 @@ function LocalUserAdmin({toast,bereitschaften=[],authMode="local"}){
 
   const startEdit=(u)=>{setForm({username:u.username,name:u.name,email:u.email||"",password:"",rolle:u.rolle,bereitschaft_code:u.bereitschaft_code||"",active:u.active});setEditUser(u);setShowNew(false);};
   const startNew=()=>{setForm({username:"",name:"",email:"",password:"",rolle:"helfer",bereitschaft_code:"",active:1});setEditUser(null);setShowNew(true);};
-
-  const FormModal=({title,onSave,onClose})=>(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:10001,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div style={{background:C.weiss,borderRadius:8,padding:"24px 28px",width:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 32px #0003"}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:18}}><h3 style={{margin:0,fontSize:15,fontWeight:700}}>{title}</h3><span onClick={onClose} style={{cursor:"pointer",fontSize:20,color:C.bgrau}}>✕</span></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 12px"}}>
-        <Inp label="Benutzername *" value={form.username} onChange={v=>setForm(p=>({...p,username:v}))} disabled={!!editUser} placeholder="max.mustermann"/>
-        <Inp label="Anzeigename *" value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="Max Mustermann"/>
-        <Inp label="E-Mail" value={form.email} onChange={v=>setForm(p=>({...p,email:v}))} placeholder="max@brk.de"/>
-        {showNew&&<Inp label="Passwort *" value={form.password} onChange={v=>setForm(p=>({...p,password:v}))} placeholder="Mind. 6 Zeichen"/>}
-        <Sel label="Rolle" value={form.rolle} onChange={v=>setForm(p=>({...p,rolle:v}))} options={Object.entries(ROLLEN_LABEL).map(([v,l])=>({value:v,label:l}))}/>
-        <Sel label="Bereitschaft" value={form.bereitschaft_code||""} onChange={v=>setForm(p=>({...p,bereitschaft_code:v}))} options={[{value:"",label:"— keine —"},...bereitschaften.map(b=>({value:b.code,label:b.name+" ("+b.short+")"}))] }/>
-      </div>
-      {editUser&&<label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,marginTop:8,cursor:"pointer"}}><input type="checkbox" checked={!!form.active} onChange={e=>setForm(p=>({...p,active:e.target.checked?1:0}))}/> Aktiv</label>}
-      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:18}}>
-        <Btn onClick={onClose} variant="secondary">Abbrechen</Btn>
-        <Btn onClick={onSave} variant="primary">Speichern</Btn>
-      </div>
-    </div>
-  </div>);
 
   return(<div style={{maxWidth:800}}>
     {/* Auth-Modus Banner */}
@@ -839,7 +843,7 @@ function LocalUserAdmin({toast,bereitschaften=[],authMode="local"}){
         </div>
     )}
 
-    {(showNew||editUser)&&<FormModal title={showNew?"Neuer Benutzer":"Benutzer bearbeiten"} onSave={save} onClose={()=>{setShowNew(false);setEditUser(null);}}/>}
+    {(showNew||editUser)&&<UserFormModal title={showNew?"Neuer Benutzer":"Benutzer bearbeiten"} form={form} setForm={setForm} editUser={editUser} showNew={showNew} bereitschaften={bereitschaften} onSave={save} onClose={()=>{setShowNew(false);setEditUser(null);}}/>}
     {pwModal&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:10001,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>{if(e.target===e.currentTarget){setPwModal(null);setNewPw("");}}}>
       <div style={{background:C.weiss,borderRadius:8,padding:"24px 28px",width:360,boxShadow:"0 8px 32px #0003"}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}><h3 style={{margin:0,fontSize:15,fontWeight:700}}>Passwort für {pwModal.name}</h3><span onClick={()=>{setPwModal(null);setNewPw("");}} style={{cursor:"pointer",fontSize:20,color:C.bgrau}}>✕</span></div>
